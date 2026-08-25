@@ -338,9 +338,8 @@
         },
       };
 
-      // =============================================
-      // ===== GAME DEFINITIONS =====
-      // =============================================
+      // Game Definitions
+
       const GAMES = [
         {
           id: "guess-number",
@@ -472,6 +471,17 @@
           highScore: HighScoreManager.get("whack-mole"),
           play: function () {
             return whackMoleGame();
+          },
+        },
+        {
+          id: "board-game",
+          icon: "🎲",
+          name: "Board Game",
+          desc: "ကျားကွက်ရွှေ့ပါ",
+          color: "#FFD93D",
+          highScore: HighScoreManager.get("board-game"),
+          play: function () {
+            return boardGameDice();
           },
         },
       ];
@@ -1898,51 +1908,214 @@
           let computerScore = 0;
           let gameOver = false;
           let bestScore = HighScoreManager.get(gameId);
+          let isRolling = false;
+          let playerValue = 1;
+          let computerValue = 1;
+          let canvas = null;
+          let ctx = null;
+
+          function drawDice(ctx, x, y, size, value, isPlayer) {
+            const dotRadius = size * 0.08;
+            const margin = size * 0.12;
+            const dotSize = size * 0.15;
+
+            // ===== အန်စာတုံးအကွက် (အဖြူ) =====
+            ctx.shadowColor = "rgba(0,0,0,0.3)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+
+            // အဖြူရောင် အန်စာတုံး
+            const gradient = ctx.createRadialGradient(
+              x + size * 0.2,
+              y + size * 0.2,
+              size * 0.1,
+              x + size * 0.5,
+              y + size * 0.5,
+              size * 0.6,
+            );
+            gradient.addColorStop(0, "#FFFFFF");
+            gradient.addColorStop(0.7, "#F5F5F5");
+            gradient.addColorStop(1, "#E0E0E0");
+
+            ctx.fillStyle = gradient;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "rgba(0,0,0,0.25)";
+
+            // အန်စာတုံး စတုဂံ (ထောင့်ဝိုင်းဝိုင်း)
+            const radius = size * 0.12;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + size - radius, y);
+            ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+            ctx.lineTo(x + size, y + size - radius);
+            ctx.quadraticCurveTo(
+              x + size,
+              y + size,
+              x + size - radius,
+              y + size,
+            );
+            ctx.lineTo(x + radius, y + size);
+            ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+
+            // အနားသတ်မျဉ်း
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = "#CCCCCC";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // ===== အစက်များ (အမည်း) =====
+            ctx.shadowBlur = 2;
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = "#1a1a2e";
+
+            // အန်စာတုံးပေါ်က အစက်တွေရဲ့ နေရာ
+            const dotPositions = {
+              1: [[0.5, 0.5]],
+              2: [
+                [0.25, 0.25],
+                [0.75, 0.75],
+              ],
+              3: [
+                [0.25, 0.25],
+                [0.5, 0.5],
+                [0.75, 0.75],
+              ],
+              4: [
+                [0.25, 0.25],
+                [0.75, 0.25],
+                [0.25, 0.75],
+                [0.75, 0.75],
+              ],
+              5: [
+                [0.25, 0.25],
+                [0.75, 0.25],
+                [0.5, 0.5],
+                [0.25, 0.75],
+                [0.75, 0.75],
+              ],
+              6: [
+                [0.25, 0.25],
+                [0.75, 0.25],
+                [0.25, 0.5],
+                [0.75, 0.5],
+                [0.25, 0.75],
+                [0.75, 0.75],
+              ],
+            };
+
+            const dots = dotPositions[value] || dotPositions[1];
+            dots.forEach((pos) => {
+              const dx = x + pos[0] * size;
+              const dy = y + pos[1] * size;
+              ctx.beginPath();
+              ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
+              ctx.fill();
+            });
+
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+          }
 
           function render() {
             container.innerHTML = `
-                    <div style="text-align:center;padding:5px 0;">
-                        <div class="high-score-display">🏆 အနိုင်ရအကြိမ်ရေ: ${bestScore}</div>
-                        <div style="display:flex;justify-content:center;gap:30px;margin:10px 0;">
-                            <div>
-                                <div style="font-size:14px;color:#aaa;">သင်</div>
-                                <div style="font-size:36px;font-weight:bold;color:#4CAF50;" id="playerDice">🎲</div>
-                                <div style="font-size:20px;color:#fff;" id="playerScore">0</div>
-                            </div>
-                            <div>
-                                <div style="font-size:14px;color:#aaa;">ကွန်ပျူတာ</div>
-                                <div style="font-size:36px;font-weight:bold;color:#e94560;" id="computerDice">🎲</div>
-                                <div style="font-size:20px;color:#fff;" id="computerScore">0</div>
-                            </div>
+                <div style="text-align:center;padding:5px 0;">
+                    <div class="high-score-display">🏆 အနိုင်ရအကြိမ်ရေ: ${bestScore}</div>
+                    <div style="display:flex;justify-content:center;gap:40px;margin:10px 0;">
+                        <div>
+                            <div style="font-size:14px;color:#4CAF50;font-weight:bold;">သင်</div>
+                            <canvas id="playerDiceCanvas" width="120" height="120" 
+                                    style="border-radius:12px;width:120px;height:120px;margin:5px auto;display:block;"></canvas>
+                            <div style="font-size:24px;font-weight:bold;color:#4CAF50;" id="playerScore">0</div>
                         </div>
-                        <div id="diceMsg" style="font-size:18px;min-height:28px;color:#ffd93d;"></div>
+                        <div>
+                            <div style="font-size:14px;color:#e94560;font-weight:bold;">ကွန်ပျူတာ</div>
+                            <canvas id="computerDiceCanvas" width="120" height="120" 
+                                    style="border-radius:12px;width:120px;height:120px;margin:5px auto;display:block;"></canvas>
+                            <div style="font-size:24px;font-weight:bold;color:#e94560;" id="computerScore">0</div>
+                        </div>
+                    </div>
+                    <div id="diceMsg" style="font-size:18px;min-height:28px;color:#ffd93d;"></div>
+                    <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
                         <button onclick="window.rollDice()" 
-                                style="padding:12px 30px;font-size:18px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;">
+                                style="padding:12px 30px;font-size:18px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;touch-action:manipulation;">
                             🎲 လှိမ့်မယ်
                         </button>
                         <button onclick="window.resetDice()" 
-                                style="margin-left:10px;padding:12px 24px;font-size:16px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                                style="padding:12px 24px;font-size:16px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;touch-action:manipulation;">
                             🔄 ပြန်စမယ်
                         </button>
                     </div>
-                `;
+                </div>
+            `;
 
-            window.rollDice = () => {
-              if (gameOver) return;
+            canvas = document.getElementById("playerDiceCanvas");
+            ctx = canvas.getContext("2d");
+            drawDice(ctx, 0, 0, 120, 1, true);
+
+            canvas = document.getElementById("computerDiceCanvas");
+            ctx = canvas.getContext("2d");
+            drawDice(ctx, 0, 0, 120, 1, false);
+
+            window.rollDice = function () {
+              if (gameOver || isRolling) return;
+              isRolling = true;
+
               const playerRoll = Math.floor(Math.random() * 6) + 1;
               const computerRoll = Math.floor(Math.random() * 6) + 1;
+              playerValue = playerRoll;
+              computerValue = computerRoll;
 
-              const diceEmojis = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-              document.getElementById("playerDice").textContent =
-                diceEmojis[playerRoll - 1];
-              document.getElementById("computerDice").textContent =
-                diceEmojis[computerRoll - 1];
+              // ===== Animation: အန်စာတုံးလှိမ့်နေတဲ့ပုံ =====
+              let frame = 0;
+              const maxFrames = 8;
+              const rollInterval = setInterval(() => {
+                frame++;
+                const randomP = Math.floor(Math.random() * 6) + 1;
+                const randomC = Math.floor(Math.random() * 6) + 1;
+
+                const pCanvas = document.getElementById("playerDiceCanvas");
+                const pCtx = pCanvas.getContext("2d");
+                drawDice(pCtx, 0, 0, 120, randomP, true);
+
+                const cCanvas = document.getElementById("computerDiceCanvas");
+                const cCtx = cCanvas.getContext("2d");
+                drawDice(cCtx, 0, 0, 120, randomC, false);
+
+                if (frame >= maxFrames) {
+                  clearInterval(rollInterval);
+                  // နောက်ဆုံးရလဒ်ကိုပြခြင်း
+                  const pCanvas2 = document.getElementById("playerDiceCanvas");
+                  const pCtx2 = pCanvas2.getContext("2d");
+                  drawDice(pCtx2, 0, 0, 120, playerRoll, true);
+
+                  const cCanvas2 =
+                    document.getElementById("computerDiceCanvas");
+                  const cCtx2 = cCanvas2.getContext("2d");
+                  drawDice(cCtx2, 0, 0, 120, computerRoll, false);
+
+                  showResult(playerRoll, computerRoll);
+                }
+              }, 80);
+            };
+
+            function showResult(playerRoll, computerRoll) {
+              const msg = document.getElementById("diceMsg");
 
               if (playerRoll > computerRoll) {
                 playerScore++;
-                document.getElementById("diceMsg").textContent =
-                  `🎉 သင် အနိုင်ရပြီ! (${playerRoll} vs ${computerRoll})`;
-                document.getElementById("diceMsg").style.color = "#4CAF50";
+                document.getElementById("playerScore").textContent =
+                  playerScore;
+                msg.textContent = `🎉 သင် အနိုင်ရပြီ! (${playerRoll} vs ${computerRoll})`;
+                msg.style.color = "#4CAF50";
+
                 const isNew = HighScoreManager.set(gameId, playerScore);
                 if (isNew) {
                   document.querySelector(".high-score-display").textContent =
@@ -1958,44 +2131,51 @@
                 }
               } else if (computerRoll > playerRoll) {
                 computerScore++;
-                document.getElementById("diceMsg").textContent =
-                  `😅 ကွန်ပျူတာ အနိုင်ရတယ် (${playerRoll} vs ${computerRoll})`;
-                document.getElementById("diceMsg").style.color = "#ff6b6b";
+                document.getElementById("computerScore").textContent =
+                  computerScore;
+                msg.textContent = `😅 ကွန်ပျူတာ အနိုင်ရတယ် (${playerRoll} vs ${computerRoll})`;
+                msg.style.color = "#ff6b6b";
               } else {
-                document.getElementById("diceMsg").textContent =
-                  `🤝 သရေကျတယ်! (${playerRoll} vs ${computerRoll})`;
-                document.getElementById("diceMsg").style.color = "#ffd93d";
+                msg.textContent = `🤝 သရေကျတယ်! (${playerRoll} vs ${computerRoll})`;
+                msg.style.color = "#ffd93d";
               }
-
-              document.getElementById("playerScore").textContent = playerScore;
-              document.getElementById("computerScore").textContent =
-                computerScore;
 
               if (playerScore >= 5) {
                 gameOver = true;
-                document.getElementById("diceMsg").textContent =
-                  "🏆 သင်က ချန်ပီယံ!";
-                document.getElementById("diceMsg").style.color = "#ffd93d";
+                msg.textContent = "🏆 သင်က ချန်ပီယံ!";
+                msg.style.color = "#ffd93d";
               } else if (computerScore >= 5) {
                 gameOver = true;
-                document.getElementById("diceMsg").textContent =
-                  "💻 ကွန်ပျူတာက ချန်ပီယံ!";
-                document.getElementById("diceMsg").style.color = "#ff6b6b";
+                msg.textContent = "💻 ကွန်ပျူတာက ချန်ပီယံ!";
+                msg.style.color = "#ff6b6b";
               }
-            };
 
-            window.resetDice = () => {
+              isRolling = false;
+            }
+
+            window.resetDice = function () {
               playerScore = 0;
               computerScore = 0;
               gameOver = false;
+              isRolling = false;
+              playerValue = 1;
+              computerValue = 1;
               bestScore = HighScoreManager.get(gameId);
-              document.getElementById("playerDice").textContent = "🎲";
-              document.getElementById("computerDice").textContent = "🎲";
+
               document.getElementById("playerScore").textContent = "0";
               document.getElementById("computerScore").textContent = "0";
               document.getElementById("diceMsg").textContent =
                 "🔄 ဂိမ်းအသစ်စတင်ပြီ";
               document.getElementById("diceMsg").style.color = "#ffd93d";
+
+              const pCanvas = document.getElementById("playerDiceCanvas");
+              const pCtx = pCanvas.getContext("2d");
+              drawDice(pCtx, 0, 0, 120, 1, true);
+
+              const cCanvas = document.getElementById("computerDiceCanvas");
+              const cCtx = cCanvas.getContext("2d");
+              drawDice(cCtx, 0, 0, 120, 1, false);
+
               document.querySelector(".high-score-display").textContent =
                 `🏆 အနိုင်ရအကြိမ်ရေ: ${bestScore}`;
               document.querySelector(".high-score-display").style.borderColor =
@@ -2004,6 +2184,7 @@
           }
 
           render();
+
           return {
             cleanup: () => {
               delete window.rollDice;
@@ -2012,7 +2193,6 @@
           };
         };
       }
-
       // GAME 10: Rock Paper Scissors
       function rockPaperGame() {
         return function (container, gameId) {
@@ -2225,7 +2405,7 @@
         };
       }
 
-      // GAME 13: Pizza Chef 
+      // GAME 13: Pizza Chef
       function pizzaChefGame() {
         return function (container, gameId) {
           let score = 0;
@@ -2735,7 +2915,7 @@
         };
       }
 
-      // GAME 14: Whack-a-Mole 
+      // GAME 14: Whack-a-Mole
       function whackMoleGame() {
         return function (container, gameId) {
           let score = 0;
@@ -3120,7 +3300,7 @@
                 document.getElementById("moleMsg").style.color = "#4CAF50";
               }
 
-              // ခေါင်းထွက်ချိန်ရောက်ရင် 
+              // ခေါင်းထွက်ချိန်ရောက်ရင်
               if (activeHole === -1) {
                 const delay = Math.max(300, 1200 - (level - 1) * 80);
                 setTimeout(
@@ -3281,6 +3461,888 @@
                 canvas.removeEventListener("touchstart", handleClick);
               }
               delete window.resetMole;
+            },
+          };
+        };
+      }
+
+      // GAME 15: Board Game with Dice
+      function boardGameDice() {
+        return function (container, gameId) {
+          let playerPosition = 0;
+          let computerPosition = 0;
+          let playerScore = 0;
+          let computerScore = 0;
+          let gameOver = false;
+          let isRolling = false;
+          let bestScore = HighScoreManager.get(gameId);
+          let currentPlayer = "player";
+          let diceValue = 1;
+          let boardSize = 70;
+          let playerWins = 0;
+          let computerWins = 0;
+          let isMoving = false;
+          let moveQueue = [];
+          let playerSkipTurn = false;
+          let computerSkipTurn = false;
+
+          let canvas = null;
+          let ctx = null;
+          let animationId = null;
+
+          // ===== ကျားကွက်ပုံစံ =====
+          const boardSpecial = {
+            // ===== လှေကားများ (တက်) =====
+            5: { type: 1, to: 18, label: "⬆", color: "#2E7D32" },
+            12: { type: 1, to: 28, label: "⬆", color: "#2E7D32" },
+            22: { type: 1, to: 40, label: "⬆", color: "#2E7D32" },
+            35: { type: 1, to: 55, label: "⬆", color: "#2E7D32" },
+            50: { type: 1, to: 65, label: "⬆", color: "#2E7D32" },
+            60: { type: 1, to: 68, label: "⬆", color: "#2E7D32" },
+
+            // ===== မြွေများ (ကျ) =====
+            8: { type: 2, to: 3, label: "⬇", color: "#C62828" },
+            15: { type: 2, to: 6, label: "⬇", color: "#C62828" },
+            25: { type: 2, to: 10, label: "⬇", color: "#C62828" },
+            38: { type: 2, to: 20, label: "⬇", color: "#C62828" },
+            45: { type: 2, to: 30, label: "⬇", color: "#C62828" },
+            58: { type: 2, to: 42, label: "⬇", color: "#C62828" },
+            66: { type: 2, to: 52, label: "⬇", color: "#C62828" },
+
+            // ===== နောက်ပြန်ဆုတ်ရမယ့်အကွက် =====
+            7: { type: 3, to: 4, label: "↩", color: "#FF6B6B" },
+            18: { type: 3, to: 14, label: "↩", color: "#FF6B6B" },
+            30: { type: 3, to: 26, label: "↩", color: "#FF6B6B" },
+            48: { type: 3, to: 43, label: "↩", color: "#FF6B6B" },
+            62: { type: 3, to: 57, label: "↩", color: "#FF6B6B" },
+
+            // ===== တစ်ခါကျော်ရမယ့်အကွက် =====
+            10: { type: 4, to: 13, label: "⏭", color: "#FFD93D" },
+            24: { type: 4, to: 27, label: "⏭", color: "#FFD93D" },
+            40: { type: 4, to: 44, label: "⏭", color: "#FFD93D" },
+            55: { type: 4, to: 59, label: "⏭", color: "#FFD93D" },
+
+            // ===== နားရမယ့်အကွက် =====
+            14: { type: 5, label: "⏸", color: "#4A90D9" },
+            28: { type: 5, label: "⏸", color: "#4A90D9" },
+            42: { type: 5, label: "⏸", color: "#4A90D9" },
+            56: { type: 5, label: "⏸", color: "#4A90D9" },
+          };
+
+          function getSpecial(pos) {
+            return boardSpecial[pos] || null;
+          }
+
+          // ===== Winner Popup =====
+          // ===== Winner Popup =====
+          function showWinnerPopup(winner, score) {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        animation: fadeIn 0.5s ease;
+    `;
+
+            const popup = document.createElement("div");
+            popup.style.cssText = `
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        border-radius: 24px;
+        padding: 40px 50px;
+        max-width: 420px;
+        width: 90%;
+        text-align: center;
+        border: 3px solid ${winner === "player" ? "#4CAF50" : "#e94560"};
+        box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+        animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        position: relative;
+    `;
+
+            const isPlayer = winner === "player";
+            const emoji = isPlayer ? "🎉" : "💻";
+            const title = isPlayer
+              ? "သင်အနိုင်ရပါပြီ!"
+              : "ကွန်ပျူတာ အနိုင်ရပါပြီ!";
+            const color = isPlayer ? "#4CAF50" : "#e94560";
+            const message = isPlayer
+              ? "ဂရိတ်ပါ! သင်က ချန်ပီယံပါ။"
+              : "နောက်တစ်ခါ ထပ်ကြိုးစားပါ။";
+
+            popup.innerHTML = `
+        <div style="font-size: 72px; margin-bottom: 10px;">${emoji}</div>
+        <h2 style="color: ${color}; font-size: 32px; margin-bottom: 8px;">${title}</h2>
+        <p style="color: #aaa; font-size: 18px; margin-bottom: 6px;">🏆 အနိုင်ရအကြိမ်ရေ: <span style="color: ${color}; font-weight: bold;">${score}</span></p>
+        <p style="color: #888; font-size: 14px; margin-bottom: 25px;">${message}</p>
+        <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+            <button onclick="this.closest('.winner-overlay').remove(); window.resetBoardGame();" 
+                    style="padding: 12px 40px; font-size: 18px; font-weight: bold; background: ${color}; color: white; border: none; border-radius: 12px; cursor: pointer; transition: 0.3s;">
+                🔄 ပြန်စမယ်
+            </button>
+            <button onclick="this.closest('.winner-overlay').remove();" 
+                    style="padding: 12px 35px; font-size: 18px; font-weight: bold; background: #0f3460; color: white; border: 1px solid ${color}; border-radius: 12px; cursor: pointer; transition: 0.3s;">
+                ✕ ပိတ်မယ်
+            </button>
+        </div>
+    `;
+
+            overlay.className = "winner-overlay";
+            overlay.appendChild(popup);
+
+            const style = document.createElement("style");
+            style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.95); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    `;
+            document.head.appendChild(style);
+            document.body.appendChild(overlay);
+          }
+
+          function render() {
+            container.innerHTML = `
+                <div style="text-align:center;padding:5px 0;">
+                    <div class="high-score-display">🏆 အနိုင်ရအကြိမ်ရေ: ${bestScore}</div>
+                    <div style="display:flex;justify-content:center;gap:30px;margin:8px 0;font-size:14px;color:#aaa;">
+                        <span>👤 သင်: <span id="playerWins" style="color:#4CAF50;font-weight:bold;">${playerWins}</span></span>
+                        <span>🤖 ကွန်ပျူတာ: <span id="computerWins" style="color:#e94560;font-weight:bold;">${computerWins}</span></span>
+                    </div>
+                    <div style="background:#1a1a2e;border-radius:12px;padding:8px;border:1px solid #e94560;margin-bottom:8px;">
+                        <div style="display:flex;justify-content:space-between;padding:0 10px;flex-wrap:wrap;">
+                            <span style="font-size:13px;color:#4CAF50;">👤 သင်: <span id="playerPosDisplay">0</span></span>
+                            <span style="font-size:13px;color:#e94560;">🤖 ကွန်ပျူတာ: <span id="computerPosDisplay">0</span></span>
+                            <span style="font-size:13px;color:#ffd93d;">🎯 ပန်းတိုင်: ${boardSize}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="position:relative;display:inline-block;">
+                        <canvas id="boardCanvas" width="500" height="520" 
+                                style="border-radius:12px;background:#0f3460;border:2px solid #e94560;width:100%;max-width:520px;height:auto;touch-action:none;"></canvas>
+                    </div>
+                    
+                    <div style="display:flex;justify-content:center;gap:12px;margin-top:8px;flex-wrap:wrap;">
+                        <button onclick="window.rollDice()" 
+                                style="padding:10px 24px;font-size:16px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;touch-action:manipulation;">
+                            🎲 လှိမ့်မယ်
+                        </button>
+                        <button onclick="window.resetBoardGame()" 
+                                style="padding:10px 20px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;touch-action:manipulation;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                    
+                    <div id="boardMsg" style="margin-top:8px;font-size:15px;min-height:24px;color:#ffd93d;"></div>
+                    
+                    <div style="display:flex;justify-content:center;gap:12px;font-size:11px;color:#888;margin-top:4px;flex-wrap:wrap;">
+                        <span style="color:#2E7D32;">⬆ လှေကား (တက်)</span>
+                        <span style="color:#C62828;">⬇ မြွေ (ကျ)</span>
+                        <span style="color:#FF6B6B;">↩ နောက်ပြန်</span>
+                        <span style="color:#FFD93D;">⏭ ကျော်</span>
+                        <span style="color:#4A90D9;">⏸ နား</span>
+                    </div>
+                </div>
+            `;
+
+            canvas = document.getElementById("boardCanvas");
+            ctx = canvas.getContext("2d");
+
+            drawBoard();
+
+            window.rollDice = function () {
+              if (gameOver || isRolling || isMoving) return;
+
+              if (currentPlayer === "computer") {
+                document.getElementById("boardMsg").textContent =
+                  "🤖 ကွန်ပျူတာ အလှည့်ပါ...";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                return;
+              }
+
+              if (playerSkipTurn) {
+                playerSkipTurn = false;
+                document.getElementById("boardMsg").textContent =
+                  "⏸ သင်နားရမယ့်ကွက်မို့ တစ်ခါကျော်သွားပါမယ်!";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                currentPlayer = "computer";
+                setTimeout(() => computerTurn(), 800);
+                return;
+              }
+
+              isRolling = true;
+              document.getElementById("boardMsg").textContent =
+                "🎲 အန်စာတုံးလှိမ့်နေပါပြီ...";
+              document.getElementById("boardMsg").style.color = "#ffd93d";
+
+              let frame = 0;
+              const maxFrames = 10;
+              const rollInterval = setInterval(() => {
+                frame++;
+                const randomVal = Math.floor(Math.random() * 6) + 1;
+                drawBoard(randomVal);
+
+                if (frame >= maxFrames) {
+                  clearInterval(rollInterval);
+                  const finalValue = Math.floor(Math.random() * 6) + 1;
+                  diceValue = finalValue;
+                  drawBoard(finalValue);
+
+                  setTimeout(() => {
+                    startPlayerMove(finalValue);
+                  }, 300);
+                }
+              }, 80);
+            };
+
+            window.resetBoardGame = function () {
+              if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+              }
+              playerPosition = 0;
+              computerPosition = 0;
+              playerScore = 0;
+              computerScore = 0;
+              gameOver = false;
+              isRolling = false;
+              isMoving = false;
+              currentPlayer = "player";
+              playerWins = 0;
+              computerWins = 0;
+              playerSkipTurn = false;
+              computerSkipTurn = false;
+              moveQueue = [];
+              bestScore = HighScoreManager.get(gameId);
+
+              document.getElementById("playerPosDisplay").textContent = "0";
+              document.getElementById("computerPosDisplay").textContent = "0";
+              document.getElementById("playerWins").textContent = "0";
+              document.getElementById("computerWins").textContent = "0";
+              document.getElementById("boardMsg").textContent =
+                "🔄 ဂိမ်းအသစ်စတင်ပြီ";
+              document.getElementById("boardMsg").style.color = "#ffd93d";
+
+              document.querySelector(".high-score-display").textContent =
+                `🏆 အနိုင်ရအကြိမ်ရေ: ${bestScore}`;
+              document.querySelector(".high-score-display").style.borderColor =
+                "rgba(255,217,61,0.2)";
+
+              drawBoard();
+            };
+
+            // ===== Player Move =====
+            function startPlayerMove(steps) {
+              isMoving = true;
+              moveQueue = [];
+
+              for (let i = 0; i < steps; i++) {
+                moveQueue.push(1);
+              }
+
+              document.getElementById("boardMsg").textContent =
+                `👤 သင် ${steps} ကွက်ရွှေ့နေပါပြီ...`;
+              document.getElementById("boardMsg").style.color = "#4CAF50";
+
+              function doNextStep() {
+                if (moveQueue.length === 0 || gameOver) {
+                  isMoving = false;
+                  checkPlayerSpecial();
+                  return;
+                }
+
+                const step = moveQueue.shift();
+                let newPos = playerPosition + step;
+
+                if (newPos > boardSize) {
+                  newPos = boardSize - (newPos - boardSize);
+                  document.getElementById("boardMsg").textContent =
+                    `📉 ပန်းတိုင်ကျော်သွားတယ်! ပြန်ဆုတ်ရမယ်`;
+                  document.getElementById("boardMsg").style.color = "#ffd93d";
+                }
+
+                playerPosition = newPos;
+                document.getElementById("playerPosDisplay").textContent =
+                  playerPosition;
+
+                drawBoard();
+
+                if (playerPosition >= boardSize) {
+                  playerWins++;
+                  playerScore++;
+                  document.getElementById("playerWins").textContent =
+                    playerWins;
+
+                  const isNew = HighScoreManager.set(gameId, playerWins);
+                  if (isNew) {
+                    document.querySelector(".high-score-display").textContent =
+                      `🏆 အနိုင်ရအကြိမ်ရေ: ${playerWins} (NEW!)`;
+                    document.querySelector(
+                      ".high-score-display",
+                    ).style.borderColor = "#4CAF50";
+                    updateHighScoreBadges();
+                  } else {
+                    const best = HighScoreManager.get(gameId);
+                    document.querySelector(".high-score-display").textContent =
+                      `🏆 အနိုင်ရအကြိမ်ရေ: ${best}`;
+                  }
+
+                  gameOver = true;
+                  isMoving = false;
+                  isRolling = false;
+
+                  setTimeout(() => {
+                    showWinnerPopup("player", playerWins);
+                  }, 500);
+                  return;
+                }
+
+                setTimeout(doNextStep, 150);
+              }
+
+              setTimeout(doNextStep, 200);
+            }
+
+            // ===== Check Player Special =====
+            function checkPlayerSpecial() {
+              const special = getSpecial(playerPosition);
+              if (!special) {
+                currentPlayer = "computer";
+                isRolling = false;
+                document.getElementById("boardMsg").textContent =
+                  "🤖 ကွန်ပျူတာ အလှည့်ပါ...";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                setTimeout(() => computerTurn(), 600);
+                return;
+              }
+
+              if (special.type === 1) {
+                playerPosition = special.to;
+                document.getElementById("playerPosDisplay").textContent =
+                  playerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `⬆ လှေကားတက်! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#4CAF50";
+                drawBoard();
+                setTimeout(() => checkPlayerSpecial(), 600);
+              } else if (special.type === 2) {
+                playerPosition = special.to;
+                document.getElementById("playerPosDisplay").textContent =
+                  playerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `⬇ မြွေကျ! ${special.to} ကိုကျသွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#ff6b6b";
+                drawBoard();
+                setTimeout(() => checkPlayerSpecial(), 600);
+              } else if (special.type === 3) {
+                playerPosition = special.to;
+                document.getElementById("playerPosDisplay").textContent =
+                  playerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `↩ နောက်ပြန်ဆုတ်! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#FF6B6B";
+                drawBoard();
+                setTimeout(() => checkPlayerSpecial(), 600);
+              } else if (special.type === 4) {
+                playerPosition = special.to;
+                document.getElementById("playerPosDisplay").textContent =
+                  playerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `⏭ ကျော်သွားပြီ! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#FFD93D";
+                drawBoard();
+                setTimeout(() => checkPlayerSpecial(), 600);
+              } else if (special.type === 5) {
+                playerSkipTurn = true;
+                document.getElementById("boardMsg").textContent =
+                  `⏸ နားရမယ့်ကွက်! နောက်တစ်ခါကျော်သွားပါမယ်!`;
+                document.getElementById("boardMsg").style.color = "#4A90D9";
+                drawBoard();
+                currentPlayer = "computer";
+                isRolling = false;
+                setTimeout(() => computerTurn(), 800);
+              }
+            }
+
+            // ===== Computer Turn =====
+            function computerTurn() {
+              if (gameOver) return;
+
+              if (computerSkipTurn) {
+                computerSkipTurn = false;
+                document.getElementById("boardMsg").textContent =
+                  "🤖 ကွန်ပျူတာ နားရမယ့်ကွက်မို့ ကျော်သွားပါမယ်!";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                currentPlayer = "player";
+                document.getElementById("boardMsg").textContent =
+                  "👤 သင့်အလှည့်ပါ! လှိမ့်လိုက်ပါ";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                return;
+              }
+
+              document.getElementById("boardMsg").textContent =
+                "🤖 ကွန်ပျူတာ စဉ်းစားနေပါပြီ...";
+              document.getElementById("boardMsg").style.color = "#ffd93d";
+
+              setTimeout(() => {
+                const steps = Math.floor(Math.random() * 6) + 1;
+                startComputerMove(steps);
+              }, 600);
+            }
+
+            // ===== Computer Move =====
+            function startComputerMove(steps) {
+              isMoving = true;
+              let currentStep = 0;
+
+              document.getElementById("boardMsg").textContent =
+                `🤖 ကွန်ပျူတာ ${steps} ကွက်ရွှေ့နေပါပြီ...`;
+              document.getElementById("boardMsg").style.color = "#e94560";
+
+              function doNextStep() {
+                if (currentStep >= steps || gameOver) {
+                  isMoving = false;
+                  checkComputerSpecial();
+                  return;
+                }
+
+                let newPos = computerPosition + 1;
+
+                if (newPos > boardSize) {
+                  newPos = boardSize - (newPos - boardSize);
+                  document.getElementById("boardMsg").textContent =
+                    `📉 ကွန်ပျူတာ ပန်းတိုင်ကျော်သွားတယ်!`;
+                  document.getElementById("boardMsg").style.color = "#ffd93d";
+                }
+
+                computerPosition = newPos;
+                document.getElementById("computerPosDisplay").textContent =
+                  computerPosition;
+                currentStep++;
+
+                drawBoard();
+
+                if (computerPosition >= boardSize) {
+                  computerWins++;
+                  computerScore++;
+                  document.getElementById("computerWins").textContent =
+                    computerWins;
+                  gameOver = true;
+                  isMoving = false;
+                  isRolling = false;
+
+                  setTimeout(() => {
+                    showWinnerPopup("computer", computerWins);
+                  }, 500);
+                  return;
+                }
+
+                setTimeout(doNextStep, 120);
+              }
+
+              setTimeout(doNextStep, 200);
+            }
+
+            // ===== Check Computer Special =====
+            function checkComputerSpecial() {
+              const special = getSpecial(computerPosition);
+              if (!special) {
+                currentPlayer = "player";
+                isRolling = false;
+                document.getElementById("boardMsg").textContent =
+                  "👤 သင့်အလှည့်ပါ! လှိမ့်လိုက်ပါ";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+                return;
+              }
+
+              if (special.type === 1) {
+                computerPosition = special.to;
+                document.getElementById("computerPosDisplay").textContent =
+                  computerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `🤖 လှေကားတက်! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#4CAF50";
+                drawBoard();
+                setTimeout(() => checkComputerSpecial(), 600);
+              } else if (special.type === 2) {
+                computerPosition = special.to;
+                document.getElementById("computerPosDisplay").textContent =
+                  computerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `🤖 မြွေကျ! ${special.to} ကိုကျသွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#ff6b6b";
+                drawBoard();
+                setTimeout(() => checkComputerSpecial(), 600);
+              } else if (special.type === 3) {
+                computerPosition = special.to;
+                document.getElementById("computerPosDisplay").textContent =
+                  computerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `🤖 နောက်ပြန်ဆုတ်! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#FF6B6B";
+                drawBoard();
+                setTimeout(() => checkComputerSpecial(), 600);
+              } else if (special.type === 4) {
+                computerPosition = special.to;
+                document.getElementById("computerPosDisplay").textContent =
+                  computerPosition;
+                document.getElementById("boardMsg").textContent =
+                  `🤖 ကျော်သွားပြီ! ${special.to} ကိုရောက်သွားပြီ!`;
+                document.getElementById("boardMsg").style.color = "#FFD93D";
+                drawBoard();
+                setTimeout(() => checkComputerSpecial(), 600);
+              } else if (special.type === 5) {
+                computerSkipTurn = true;
+                document.getElementById("boardMsg").textContent =
+                  `🤖 နားရမယ့်ကွက်! ကျော်သွားပါမယ်!`;
+                document.getElementById("boardMsg").style.color = "#4A90D9";
+                drawBoard();
+                currentPlayer = "player";
+                isRolling = false;
+                document.getElementById("boardMsg").textContent =
+                  "👤 သင့်အလှည့်ပါ! လှိမ့်လိုက်ပါ";
+                document.getElementById("boardMsg").style.color = "#ffd93d";
+              }
+            }
+
+            // ===== Board Drawing =====
+            function drawBoard(diceValueToShow) {
+              if (!ctx) return;
+
+              const W = 500;
+              const H = 520;
+              const cols = 10;
+              const rows = 7;
+              const cellSize = 45;
+              const boardStartX = 25;
+              const boardStartY = 15;
+              const padding = 2;
+              const diceAreaHeight = 70;
+
+              ctx.clearRect(0, 0, W, H);
+              ctx.fillStyle = "#0f3460";
+              ctx.fillRect(0, 0, W, H);
+
+              // ===== Board ဆွဲခြင်း =====
+              for (let i = 0; i < boardSize; i++) {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                const x = boardStartX + col * cellSize + padding;
+                const y = boardStartY + row * cellSize + padding;
+                const size = cellSize - padding * 2;
+
+                const isSpecial = getSpecial(i + 1);
+
+                if (isSpecial) {
+                  ctx.fillStyle = isSpecial.color || "#2a2a4a";
+                } else {
+                  ctx.fillStyle = i % 2 === 0 ? "#1a4a7a" : "#1a5a8a";
+                }
+
+                ctx.fillRect(x, y, size, size);
+                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, size, size);
+
+                ctx.fillStyle = "rgba(255,255,255,0.25)";
+                ctx.font = "8px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(i + 1, x + size / 2, y + size / 2 - 4);
+
+                if (isSpecial) {
+                  ctx.fillStyle = "white";
+                  ctx.font = "11px Arial";
+                  ctx.fillText(
+                    isSpecial.label,
+                    x + size / 2,
+                    y + size / 2 + 12,
+                  );
+                }
+              }
+
+              // ===== START Area (ကွက် 0) =====
+              const startX = boardStartX;
+              const startY = boardStartY + 7 * cellSize + 5;
+              const startW = cols * cellSize;
+              const startH = diceAreaHeight - 5;
+
+              ctx.fillStyle = "#1a4a7a";
+              ctx.shadowColor = "rgba(0,0,0,0.3)";
+              ctx.shadowBlur = 10;
+              ctx.beginPath();
+              ctx.roundRect(startX, startY, startW, startH, 8);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+              ctx.strokeStyle = "rgba(255,215,0,0.3)";
+              ctx.lineWidth = 2;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.roundRect(startX, startY, startW, startH, 8);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              ctx.fillStyle = "#FFD93D";
+              ctx.font = "bold 16px Arial";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(
+                "🏁 START",
+                startX + startW / 2,
+                startY + startH / 2,
+              );
+
+              // START မှာ ကစားသမားတွေရဲ့ အိုင်ကွန်
+              if (playerPosition === 0) {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(76,175,80,0.5)";
+                ctx.beginPath();
+                ctx.arc(startX + 30, startY + startH / 2, 12, 0, Math.PI * 2);
+                ctx.fillStyle = "#4CAF50";
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.font = "14px Arial";
+                ctx.fillText("👤", startX + 30, startY + startH / 2);
+              }
+
+              if (computerPosition === 0) {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(233,69,96,0.5)";
+                ctx.beginPath();
+                ctx.arc(
+                  startX + startW - 30,
+                  startY + startH / 2,
+                  12,
+                  0,
+                  Math.PI * 2,
+                );
+                ctx.fillStyle = "#e94560";
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.font = "14px Arial";
+                ctx.fillText("🤖", startX + startW - 30, startY + startH / 2);
+              }
+
+              // ===== အန်စာတုံး (ညာဘက် START နေရာမှာ) =====
+              const diceSize = 60;
+              const diceX = startX + startW - diceSize - 15;
+              const diceY = startY + (startH - diceSize) / 2;
+              const val = diceValueToShow || diceValue || 1;
+
+              ctx.shadowColor = "rgba(0,0,0,0.3)";
+              ctx.shadowBlur = 12;
+              ctx.shadowOffsetX = 3;
+              ctx.shadowOffsetY = 3;
+
+              const grad = ctx.createRadialGradient(
+                diceX + diceSize * 0.2,
+                diceY + diceSize * 0.2,
+                diceSize * 0.1,
+                diceX + diceSize * 0.5,
+                diceY + diceSize * 0.5,
+                diceSize * 0.6,
+              );
+              grad.addColorStop(0, "#FFFFFF");
+              grad.addColorStop(0.7, "#F5F5F5");
+              grad.addColorStop(1, "#E0E0E0");
+              ctx.fillStyle = grad;
+
+              const radius = diceSize * 0.12;
+              ctx.beginPath();
+              ctx.moveTo(diceX + radius, diceY);
+              ctx.lineTo(diceX + diceSize - radius, diceY);
+              ctx.quadraticCurveTo(
+                diceX + diceSize,
+                diceY,
+                diceX + diceSize,
+                diceY + radius,
+              );
+              ctx.lineTo(diceX + diceSize, diceY + diceSize - radius);
+              ctx.quadraticCurveTo(
+                diceX + diceSize,
+                diceY + diceSize,
+                diceX + diceSize - radius,
+                diceY + diceSize,
+              );
+              ctx.lineTo(diceX + radius, diceY + diceSize);
+              ctx.quadraticCurveTo(
+                diceX,
+                diceY + diceSize,
+                diceX,
+                diceY + diceSize - radius,
+              );
+              ctx.lineTo(diceX, diceY + radius);
+              ctx.quadraticCurveTo(diceX, diceY, diceX + radius, diceY);
+              ctx.closePath();
+              ctx.fill();
+              ctx.shadowBlur = 0;
+              ctx.strokeStyle = "#CCCCCC";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+
+              const dotPositions = {
+                1: [[0.5, 0.5]],
+                2: [
+                  [0.25, 0.25],
+                  [0.75, 0.75],
+                ],
+                3: [
+                  [0.25, 0.25],
+                  [0.5, 0.5],
+                  [0.75, 0.75],
+                ],
+                4: [
+                  [0.25, 0.25],
+                  [0.75, 0.25],
+                  [0.25, 0.75],
+                  [0.75, 0.75],
+                ],
+                5: [
+                  [0.25, 0.25],
+                  [0.75, 0.25],
+                  [0.5, 0.5],
+                  [0.25, 0.75],
+                  [0.75, 0.75],
+                ],
+                6: [
+                  [0.25, 0.25],
+                  [0.75, 0.25],
+                  [0.25, 0.5],
+                  [0.75, 0.5],
+                  [0.25, 0.75],
+                  [0.75, 0.75],
+                ],
+              };
+
+              ctx.shadowBlur = 3;
+              ctx.shadowColor = "rgba(0,0,0,0.15)";
+              ctx.shadowOffsetX = 1;
+              ctx.shadowOffsetY = 1;
+              ctx.fillStyle = "#1a1a2e";
+
+              const dots = dotPositions[val] || dotPositions[1];
+              const dotSize2 = diceSize * 0.13;
+              dots.forEach((pos) => {
+                const dx = diceX + pos[0] * diceSize;
+                const dy = diceY + pos[1] * diceSize;
+                ctx.beginPath();
+                ctx.arc(dx, dy, dotSize2, 0, Math.PI * 2);
+                ctx.fill();
+              });
+
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+
+              // ===== ကစားသမားများ (Board ပေါ်မှာ) =====
+              if (playerPosition > 0 && playerPosition <= boardSize) {
+                const row = Math.floor((playerPosition - 1) / cols);
+                const col = (playerPosition - 1) % cols;
+                const px = boardStartX + col * cellSize + cellSize / 2;
+                const py = boardStartY + row * cellSize + cellSize / 2;
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(76,175,80,0.5)";
+                ctx.beginPath();
+                ctx.arc(px - 4, py - 4, 9, 0, Math.PI * 2);
+                ctx.fillStyle = "#4CAF50";
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.font = "10px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("👤", px - 4, py - 4);
+              }
+
+              if (computerPosition > 0 && computerPosition <= boardSize) {
+                const row = Math.floor((computerPosition - 1) / cols);
+                const col = (computerPosition - 1) % cols;
+                const px = boardStartX + col * cellSize + cellSize / 2;
+                const py = boardStartY + row * cellSize + cellSize / 2;
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(233,69,96,0.5)";
+                ctx.beginPath();
+                ctx.arc(px + 4, py + 4, 9, 0, Math.PI * 2);
+                ctx.fillStyle = "#e94560";
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.font = "10px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("🤖", px + 4, py + 4);
+              }
+
+              // ===== ပန်းတိုင် =====
+              const goalRow = Math.floor((boardSize - 1) / cols);
+              const goalCol = (boardSize - 1) % cols;
+              const gx = boardStartX + goalCol * cellSize + cellSize / 2;
+              const gy = boardStartY + goalRow * cellSize + cellSize / 2;
+
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = "rgba(255,215,0,0.3)";
+              ctx.strokeStyle = "#FFD93D";
+              ctx.lineWidth = 2.5;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.arc(gx, gy, 16, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.shadowBlur = 0;
+
+              ctx.fillStyle = "#FFD93D";
+              ctx.font = "16px Arial";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("🏆", gx, gy);
+            }
+          }
+
+          // ===== roundRect polyfill for older browsers =====
+          if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (
+              x,
+              y,
+              w,
+              h,
+              radii,
+            ) {
+              const r = typeof radii === "number" ? radii : radii || 0;
+              this.moveTo(x + r, y);
+              this.arcTo(x + w, y, x + w, y + h, r);
+              this.arcTo(x + w, y + h, x, y + h, r);
+              this.arcTo(x, y + h, x, y, r);
+              this.arcTo(x, y, x + w, y, r);
+              return this;
+            };
+          }
+
+          render();
+
+          return {
+            cleanup: () => {
+              if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+              }
+              delete window.rollDice;
+              delete window.resetBoardGame;
             },
           };
         };
