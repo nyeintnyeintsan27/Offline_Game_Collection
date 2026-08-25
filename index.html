@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 Game Collection - 10 Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0f0f1a;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            margin-bottom: 25px;
+            border: 2px solid #e94560;
+        }
+        .header h1 {
+            font-size: 32px;
+            color: #ffd93d;
+        }
+        .header p {
+            color: #aaa;
+            margin-top: 8px;
+            font-size: 16px;
+        }
+        .header .badge {
+            display: inline-block;
+            background: #e94560;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .game-card {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 18px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+            border-color: #e94560;
+            box-shadow: 0 8px 30px rgba(233,69,96,0.2);
+        }
+        .game-card:active {
+            transform: scale(0.95);
+        }
+        .game-card .icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .game-card .name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #eee;
+        }
+        .game-card .desc {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .game-card .status {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-size: 12px;
+            color: #4CAF50;
+        }
+        .game-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .game-card.locked:hover {
+            transform: none;
+            border-color: transparent;
+        }
+        .game-card .lock-icon {
+            font-size: 18px;
+        }
+
+        /* ===== Game Modal ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #16213e;
+            border-radius: 24px;
+            max-width: 750px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 2px solid #e94560;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: #1a1a2e;
+            border-bottom: 1px solid #2a2a4a;
+            flex-shrink: 0;
+        }
+        .modal-header h2 {
+            font-size: 20px;
+            color: #ffd93d;
+        }
+        .modal-header .close-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0 8px;
+            transition: 0.3s;
+        }
+        .modal-header .close-btn:hover {
+            transform: rotate(90deg);
+            color: #ff4444;
+        }
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 300px;
+            position: relative;
+        }
+        .modal-body canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            background: #87CEEB;
+            touch-action: none;
+        }
+        .modal-body .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+        .modal-body .game-controls button {
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            touch-action: manipulation;
+        }
+        .modal-body .game-controls button:hover {
+            background: #ff6b81;
+            transform: scale(1.05);
+        }
+        .modal-body .game-controls button.secondary {
+            background: #0f3460;
+            border: 1px solid #e94560;
+        }
+        .modal-body .game-controls button.secondary:hover {
+            background: #1a4a7a;
+        }
+        .modal-body .game-info {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #aaa;
+            min-height: 28px;
+        }
+        .modal-body .game-info.success {
+            color: #4CAF50;
+        }
+        .modal-body .game-info.fail {
+            color: #ff6b6b;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 600px) {
+            .app-container { padding: 12px; }
+            .header h1 { font-size: 24px; }
+            .game-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+            .game-card { padding: 14px 8px; min-height: 100px; }
+            .game-card .icon { font-size: 28px; }
+            .game-card .name { font-size: 12px; }
+            .modal-body { padding: 14px 16px; }
+            .modal-header { padding: 12px 16px; }
+            .modal-header h2 { font-size: 17px; }
+        }
+        @media (max-width: 400px) {
+            .game-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+            .game-card { min-height: 80px; padding: 10px 6px; }
+            .game-card .icon { font-size: 22px; }
+            .game-card .name { font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <div class="header">
+        <h1>🎮 Game Collection</h1>
+        <p>10 offline games in one place</p>
+        <span class="badge">📱 Offline Ready</span>
+    </div>
+
+    <!-- Game Grid -->
+    <div class="game-grid" id="gameGrid">
+        <!-- Games will be rendered here by JavaScript -->
+    </div>
+</div>
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="gameModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Game</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Game content will be injected here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // =============================================
+    // ===== GAME DEFINITIONS =====
+    // =============================================
+    const GAMES = [
+        {
+            id: 'guess-number',
+            icon: '🔢',
+            name: 'Guess Number',
+            desc: '1-100 ခန့်မှန်းပါ',
+            color: '#e94560',
+            play: function() { return guessNumberGame(); }
+        },
+        {
+            id: 'memory',
+            icon: '🧠',
+            name: 'Memory Card',
+            desc: 'ကတ်တွဲဖော်ရှာပါ',
+            color: '#4CAF50',
+            play: function() { return memoryGame(); }
+        },
+        {
+            id: 'tic-tac-toe',
+            icon: '❌',
+            name: 'Tic Tac Toe',
+            desc: 'XO ကစားပါ',
+            color: '#FF6B6B',
+            play: function() { return ticTacToeGame(); }
+        },
+        {
+            id: 'reaction',
+            icon: '⚡',
+            name: 'Reaction Test',
+            desc: 'မြန်မြန်နှိပ်ပါ',
+            color: '#FFD93D',
+            play: function() { return reactionGame(); }
+        },
+        {
+            id: 'clicker',
+            icon: '👆',
+            name: 'Click Counter',
+            desc: 'စက္ကန့် ၃၀ အတွင်း',
+            color: '#6C5CE7',
+            play: function() { return clickerGame(); }
+        },
+        {
+            id: 'color-match',
+            icon: '🎨',
+            name: 'Color Match',
+            desc: 'အရောင်တူတာရှာပါ',
+            color: '#00B894',
+            play: function() { return colorMatchGame(); }
+        },
+        {
+            id: 'snake',
+            icon: '🐍',
+            name: 'Snake Game',
+            desc: 'မြွေကိုထိန်းပါ',
+            color: '#FD79A8',
+            play: function() { return snakeGame(); }
+        },
+        {
+            id: 'flappy',
+            icon: '🐦',
+            name: 'Flappy Bird',
+            desc: 'ငှက်လေးကိုပျံပါ',
+            color: '#0984E3',
+            play: function() { return flappyGame(); }
+        },
+        {
+            id: 'dice',
+            icon: '🎲',
+            name: 'Dice Roll',
+            desc: 'အမှတ်ကြီးသူအနိုင်',
+            color: '#FDCB6E',
+            play: function() { return diceGame(); }
+        },
+        {
+            id: 'rock-paper',
+            icon: '✊',
+            name: 'Rock Paper',
+            desc: 'ကျောက်/ကတ်ကြေး/စက္ကူ',
+            color: '#E17055',
+            play: function() { return rockPaperGame(); }
+        }
+    ];
+
+    // =============================================
+    // ===== RENDER GAME CARDS =====
+    // =============================================
+    const grid = document.getElementById('gameGrid');
+
+    GAMES.forEach((game, index) => {
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        card.innerHTML = `
+            <div class="icon">${game.icon}</div>
+            <div class="name">${game.name}</div>
+            <div class="desc">${game.desc}</div>
+            <div class="status">▶</div>
+        `;
+        card.addEventListener('click', () => openGame(index));
+        card.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            openGame(index);
+        });
+        grid.appendChild(card);
+    });
+
+    // =============================================
+    // ===== MODAL CONTROL =====
+    // =============================================
+    let currentGameId = null;
+    let gameInstance = null;
+    let modalOpen = false;
+
+    function openGame(index) {
+        const game = GAMES[index];
+        currentGameId = game.id;
+        document.getElementById('modalTitle').textContent = `${game.icon} ${game.name}`;
+        document.getElementById('modalBody').innerHTML = '<div style="text-align:center;padding:40px;color:#888;">Loading...</div>';
+        document.getElementById('gameModal').classList.add('active');
+        modalOpen = true;
+        document.body.style.overflow = 'hidden';
+
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            const container = document.getElementById('modalBody');
+            gameInstance = game.play();
+            if (typeof gameInstance === 'function') {
+                container.innerHTML = '';
+                gameInstance(container);
+            } else {
+                container.innerHTML = gameInstance || '<p style="color:#ff6b6b;">Error loading game</p>';
+            }
+        }, 100);
+    }
+
+    function closeModal() {
+        document.getElementById('gameModal').classList.remove('active');
+        modalOpen = false;
+        document.body.style.overflow = 'auto';
+        // Clean up any running game timers
+        if (gameInstance && gameInstance.cleanup) {
+            gameInstance.cleanup();
+        }
+        gameInstance = null;
+        currentGameId = null;
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalOpen) {
+            closeModal();
+        }
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('gameModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('gameModal')) {
+            closeModal();
+        }
+    });
+
+    // =============================================
+    // ===== GAME 1: Guess Number =====
+    // =============================================
+    function guessNumberGame() {
+        return function(container) {
+            let secret = Math.floor(Math.random() * 100) + 1;
+            let attempts = 0;
+            let gameOver = false;
+
+            container.innerHTML = `
+                <div style="text-align:center;padding:10px 0;">
+                    <p style="font-size:18px;color:#fff;margin-bottom:12px;">🔢 ၁ မှ ၁၀၀ အတွင်း ခန့်မှန်းပါ</p>
+                    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+                        <input type="number" id="guessInput" min="1" max="100" 
+                               style="padding:12px 16px;font-size:18px;border-radius:10px;border:2px solid #e94560;background:#1a1a2e;color:#fff;width:160px;outline:none;">
+                        <button onclick="window.guessNumber()" 
+                                style="padding:12px 28px;font-size:18px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;">
+                            ခန့်မှန်းမယ်
+                        </button>
+                        <button onclick="window.resetGuessNumber()" 
+                                style="padding:12px 28px;font-size:18px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            ပြန်စမယ်
+                        </button>
+                    </div>
+                    <div id="guessMessage" style="margin-top:16px;font-size:20px;min-height:36px;color:#ffd93d;"></div>
+                    <div style="margin-top:8px;font-size:14px;color:#888;">အကြိမ်ရေ: <span id="guessCount">0</span></div>
+                </div>
+            `;
+
+            window.guessNumber = function() {
+                if (gameOver) return;
+                const input = document.getElementById('guessInput');
+                const msg = document.getElementById('guessMessage');
+                const countEl = document.getElementById('guessCount');
+                const val = parseInt(input.value);
+                if (isNaN(val) || val < 1 || val > 100) {
+                    msg.textContent = '⚠️ ၁ မှ ၁၀၀ အတွင်း နံပါတ်ထည့်ပါ';
+                    msg.style.color = '#ff6b6b';
+                    return;
+                }
+                attempts++;
+                countEl.textContent = attempts;
+                if (val === secret) {
+                    msg.textContent = `🎉 မှန်ပါတယ်! ${attempts} ကြိမ်မြောက်မှာ ရှာတွေ့သွားတယ်`;
+                    msg.style.color = '#4CAF50';
+                    gameOver = true;
+                } else if (val < secret) {
+                    msg.textContent = '📈 ပိုကြီးတဲ့ နံပါတ်ကို ခန့်မှန်းပါ';
+                    msg.style.color = '#ffd93d';
+                } else {
+                    msg.textContent = '📉 ပိုငယ်တဲ့ နံပါတ်ကို ခန့်မှန်းပါ';
+                    msg.style.color = '#ffd93d';
+                }
+                input.value = '';
+                input.focus();
+            };
+
+            window.resetGuessNumber = function() {
+                secret = Math.floor(Math.random() * 100) + 1;
+                attempts = 0;
+                gameOver = false;
+                document.getElementById('guessCount').textContent = '0';
+                document.getElementById('guessMessage').textContent = '🔄 ဂိမ်းအသစ်စတင်ပြီ';
+                document.getElementById('guessMessage').style.color = '#ffd93d';
+                document.getElementById('guessInput').value = '';
+                document.getElementById('guessInput').focus();
+            };
+
+            // Enter key support
+            container.querySelector('#guessInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') window.guessNumber();
+            });
+
+            return { cleanup: () => { delete window.guessNumber; delete window.resetGuessNumber; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 2: Memory Card =====
+    // =============================================
+    function memoryGame() {
+        return function(container) {
+            const emojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+            const cards = [...emojis, ...emojis];
+            let shuffled = [];
+            let flipped = [];
+            let matched = [];
+            let lockBoard = false;
+            let moves = 0;
+
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            function render() {
+                shuffled = shuffle([...cards]);
+                matched = [];
+                flipped = [];
+                moves = 0;
+
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="font-size:14px;color:#888;margin-bottom:10px;">လှည့်ကြည့်ပြီး တွဲဖော်ရှာပါ</div>
+                        <div id="memoryGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:400px;margin:0 auto;">
+                            ${shuffled.map((_, i) => `
+                                <div class="memory-card" data-index="${i}" 
+                                     style="aspect-ratio:1;background:#0f3460;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:32px;cursor:pointer;border:2px solid #e94560;transition:0.3s;touch-action:manipulation;">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top:12px;font-size:14px;color:#aaa;">လှည့်ကြည့်မှု: <span id="memoryMoves">0</span></div>
+                        <div id="memoryMessage" style="margin-top:8px;font-size:16px;min-height:24px;color:#ffd93d;"></div>
+                        <button onclick="window.resetMemory()" 
+                                style="margin-top:10px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                document.querySelectorAll('.memory-card').forEach(el => {
+                    el.addEventListener('click', () => flipCard(el));
+                });
+
+                window.resetMemory = () => render();
+            }
+
+            function flipCard(el) {
+                if (lockBoard) return;
+                const index = parseInt(el.dataset.index);
+                if (flipped.includes(index)) return;
+                if (matched.includes(index)) return;
+
+                el.textContent = shuffled[index];
+                el.style.background = '#1a4a7a';
+                flipped.push(index);
+                moves++;
+                document.getElementById('memoryMoves').textContent = moves;
+
+                if (flipped.length === 2) {
+                    lockBoard = true;
+                    const [i1, i2] = flipped;
+                    if (shuffled[i1] === shuffled[i2]) {
+                        matched.push(i1, i2);
+                        document.getElementById('memoryMessage').textContent = '✅ တွဲဖော်ရှာတွေ့ပြီ!';
+                        document.getElementById('memoryMessage').style.color = '#4CAF50';
+                        flipped = [];
+                        lockBoard = false;
+                        if (matched.length === cards.length) {
+                            document.getElementById('memoryMessage').textContent = `🎉 အားလုံးရှာတွေ့သွားပြီ! (${moves} ကြိမ်)`;
+                            document.getElementById('memoryMessage').style.color = '#ffd93d';
+                        }
+                    } else {
+                        document.getElementById('memoryMessage').textContent = '❌ မတူဘူး!';
+                        document.getElementById('memoryMessage').style.color = '#ff6b6b';
+                        setTimeout(() => {
+                            document.querySelectorAll('.memory-card').forEach(el2 => {
+                                const idx = parseInt(el2.dataset.index);
+                                if (!matched.includes(idx) && !flipped.includes(idx)) {
+                                    el2.textContent = '';
+                                    el2.style.background = '#0f3460';
+                                }
+                            });
+                            flipped = [];
+                            lockBoard = false;
+                            document.getElementById('memoryMessage').textContent = '';
+                        }, 600);
+                    }
+                }
+            }
+
+            render();
+            return { cleanup: () => { delete window.resetMemory; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 3: Tic Tac Toe =====
+    // =============================================
+    function ticTacToeGame() {
+        return function(container) {
+            let board = Array(9).fill(null);
+            let currentPlayer = 'X';
+            let gameOver = false;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="font-size:20px;margin-bottom:10px;color:#fff;">
+                            ${currentPlayer === 'X' ? '❌' : '⭕'} ရဲ့ အလှည့်
+                        </div>
+                        <div id="tttBoard" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:300px;margin:0 auto;">
+                            ${board.map((val, i) => `
+                                <div class="ttt-cell" data-index="${i}" 
+                                     style="aspect-ratio:1;background:#0f3460;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:48px;cursor:pointer;border:2px solid #e94560;transition:0.2s;touch-action:manipulation;">
+                                    ${val || ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div id="tttMessage" style="margin-top:12px;font-size:18px;min-height:28px;color:#ffd93d;"></div>
+                        <button onclick="window.resetTTT()" 
+                                style="margin-top:10px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                document.querySelectorAll('.ttt-cell').forEach(el => {
+                    el.addEventListener('click', () => makeMove(el));
+                });
+
+                window.resetTTT = () => {
+                    board = Array(9).fill(null);
+                    currentPlayer = 'X';
+                    gameOver = false;
+                    document.getElementById('tttMessage').textContent = '';
+                    render();
+                };
+            }
+
+            function makeMove(el) {
+                if (gameOver) return;
+                const index = parseInt(el.dataset.index);
+                if (board[index]) return;
+
+                board[index] = currentPlayer;
+                el.textContent = currentPlayer;
+
+                if (checkWin(currentPlayer)) {
+                    gameOver = true;
+                    document.getElementById('tttMessage').textContent = `🎉 ${currentPlayer === 'X' ? '❌' : '⭕'} အနိုင်ရပြီ!`;
+                    document.getElementById('tttMessage').style.color = '#4CAF50';
+                    return;
+                }
+
+                if (board.every(c => c !== null)) {
+                    gameOver = true;
+                    document.getElementById('tttMessage').textContent = '🤝 သရေကျတယ်!';
+                    document.getElementById('tttMessage').style.color = '#ffd93d';
+                    return;
+                }
+
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                document.querySelector('#tttBoard').parentElement.querySelector('div:first-child').textContent = 
+                    `${currentPlayer === 'X' ? '❌' : '⭕'} ရဲ့ အလှည့်`;
+            }
+
+            function checkWin(player) {
+                const wins = [
+                    [0,1,2],[3,4,5],[6,7,8],
+                    [0,3,6],[1,4,7],[2,5,8],
+                    [0,4,8],[2,4,6]
+                ];
+                return wins.some(w => w.every(i => board[i] === player));
+            }
+
+            render();
+            return { cleanup: () => { delete window.resetTTT; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 4: Reaction Test =====
+    // =============================================
+    function reactionGame() {
+        return function(container) {
+            let state = 'waiting';
+            let startTime = 0;
+            let timeoutId = null;
+            let bestScore = 0;
+            let attempts = 0;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:10px 0;">
+                        <div id="reactionBox" 
+                             style="width:100%;max-width:400px;height:200px;margin:0 auto;border-radius:16px;display:flex;justify-content:center;align-items:center;font-size:22px;font-weight:bold;cursor:pointer;transition:0.3s;background:#0f3460;border:2px solid #e94560;color:#fff;touch-action:manipulation;">
+                            နှိပ်ပြီး စတင်ပါ
+                        </div>
+                        <div style="margin-top:12px;font-size:16px;color:#aaa;">
+                            ⏱️ <span id="reactionTime">0</span>ms
+                            | 🏆 အကောင်းဆုံး: <span id="reactionBest">${bestScore}</span>ms
+                            | 🎯 <span id="reactionAttempts">${attempts}</span>
+                        </div>
+                        <div id="reactionMsg" style="margin-top:6px;font-size:14px;color:#888;min-height:20px;"></div>
+                    </div>
+                `;
+
+                const box = document.getElementById('reactionBox');
+                box.addEventListener('click', () => handleReactionClick());
+
+                // Keyboard support
+                document.addEventListener('keydown', reactionKeyHandler);
+                window._reactionKeyHandler = reactionKeyHandler;
+            }
+
+            function reactionKeyHandler(e) {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    handleReactionClick();
+                }
+            }
+
+            function handleReactionClick() {
+                const box = document.getElementById('reactionBox');
+                const msg = document.getElementById('reactionMsg');
+
+                if (state === 'waiting') {
+                    box.textContent = '⏳ စောင့်ပါ...';
+                    box.style.background = '#e94560';
+                    state = 'ready';
+                    msg.textContent = 'အစိမ်းရောင်ပြောင်းရင် နှိပ်ပါ!';
+                    const delay = 1000 + Math.random() * 3000;
+                    timeoutId = setTimeout(() => {
+                        if (state === 'ready') {
+                            box.textContent = '👆 နှိပ်ပါ!';
+                            box.style.background = '#4CAF50';
+                            state = 'go';
+                            startTime = performance.now();
+                            msg.textContent = 'အခုနှိပ်ပါ!';
+                        }
+                    }, delay);
+                } else if (state === 'go') {
+                    const elapsed = Math.round(performance.now() - startTime);
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = null;
+                    }
+                    box.textContent = `✅ ${elapsed}ms`;
+                    box.style.background = '#0f3460';
+                    state = 'waiting';
+                    attempts++;
+                    if (bestScore === 0 || elapsed < bestScore) {
+                        bestScore = elapsed;
+                    }
+                    document.getElementById('reactionTime').textContent = elapsed;
+                    document.getElementById('reactionBest').textContent = bestScore;
+                    document.getElementById('reactionAttempts').textContent = attempts;
+                    msg.textContent = '🔄 ပြန်စရန် နှိပ်ပါ';
+                } else if (state === 'ready') {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = null;
+                    }
+                    box.textContent = '😅 စောလွန်းတယ်!';
+                    box.style.background = '#ff6b6b';
+                    state = 'waiting';
+                    attempts++;
+                    document.getElementById('reactionAttempts').textContent = attempts;
+                    msg.textContent = '🔄 ပြန်စရန် နှိပ်ပါ';
+                    setTimeout(() => {
+                        if (state === 'waiting') {
+                            box.textContent = 'နှိပ်ပြီး စတင်ပါ';
+                            box.style.background = '#0f3460';
+                            msg.textContent = '';
+                        }
+                    }, 800);
+                }
+            }
+
+            render();
+
+            return {
+                cleanup: () => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = null;
+                    }
+                    if (window._reactionKeyHandler) {
+                        document.removeEventListener('keydown', window._reactionKeyHandler);
+                        delete window._reactionKeyHandler;
+                    }
+                }
+            };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 5: Click Counter =====
+    // =============================================
+    function clickerGame() {
+        return function(container) {
+            let score = 0;
+            let timeLeft = 30;
+            let timerId = null;
+            let running = false;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:10px 0;">
+                        <div style="font-size:48px;font-weight:bold;color:#ffd93d;margin-bottom:5px;" id="clickerScore">0</div>
+                        <div style="font-size:20px;color:#aaa;">⏱️ <span id="clickerTimer">30</span>s</div>
+                        <div id="clickerArea" 
+                             style="width:100%;max-width:300px;height:120px;margin:12px auto;border-radius:16px;display:flex;justify-content:center;align-items:center;font-size:28px;cursor:pointer;background:#0f3460;border:2px solid #e94560;color:#fff;transition:0.3s;touch-action:manipulation;">
+                            👆 နှိပ်ပါ
+                        </div>
+                        <div id="clickerMsg" style="font-size:16px;min-height:24px;color:#888;"></div>
+                        <button onclick="window.resetClicker()" 
+                                style="margin-top:8px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('clickerArea').addEventListener('click', () => handleClick());
+                window.resetClicker = () => {
+                    if (timerId) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                    score = 0;
+                    timeLeft = 30;
+                    running = false;
+                    document.getElementById('clickerScore').textContent = '0';
+                    document.getElementById('clickerTimer').textContent = '30';
+                    document.getElementById('clickerMsg').textContent = '🔄 ဂိမ်းအသစ်စတင်ပြီ';
+                    document.getElementById('clickerArea').textContent = '👆 နှိပ်ပါ';
+                };
+            }
+
+            function handleClick() {
+                const area = document.getElementById('clickerArea');
+                const msg = document.getElementById('clickerMsg');
+
+                if (!running) {
+                    running = true;
+                    score = 0;
+                    timeLeft = 30;
+                    area.textContent = '👆 ဆက်နှိပ်ပါ!';
+                    msg.textContent = '⏱️ စတင်ပြီ!';
+                    timerId = setInterval(() => {
+                        timeLeft--;
+                        document.getElementById('clickerTimer').textContent = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(timerId);
+                            timerId = null;
+                            running = false;
+                            area.textContent = '⏰ ပြီးပါပြီ!';
+                            msg.textContent = `🎉 စုစုပေါင်း ${score} ကြိမ်!`;
+                            msg.style.color = '#4CAF50';
+                        }
+                    }, 1000);
+                    return;
+                }
+
+                if (!running) return;
+
+                score++;
+                document.getElementById('clickerScore').textContent = score;
+                area.style.transform = 'scale(0.92)';
+                setTimeout(() => { area.style.transform = 'scale(1)'; }, 100);
+            }
+
+            render();
+            return { cleanup: () => { if (timerId) clearInterval(timerId); delete window.resetClicker; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 6: Color Match =====
+    // =============================================
+    function colorMatchGame() {
+        return function(container) {
+            const colors = ['#e94560', '#4CAF50', '#FFD93D', '#6C5CE7', '#00B894', '#FD79A8', '#0984E3', '#E17055'];
+            let score = 0;
+            let targetIndex = 0;
+            let shuffled = [];
+            let gameOver = false;
+
+            function render() {
+                shuffled = [...colors];
+                targetIndex = Math.floor(Math.random() * shuffled.length);
+                const target = shuffled[targetIndex];
+                // Shuffle display order
+                const displayColors = [...shuffled].sort(() => Math.random() - 0.5);
+
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="font-size:16px;color:#aaa;margin-bottom:8px;">ဒီအရောင်ကို ရှာပါ</div>
+                        <div style="width:80px;height:80px;border-radius:16px;margin:0 auto;border:3px solid #e94560;background:${target};"></div>
+                        <div id="colorGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:320px;margin:12px auto;">
+                            ${displayColors.map((c, i) => `
+                                <div class="color-cell" data-color="${c}" 
+                                     style="aspect-ratio:1;border-radius:12px;cursor:pointer;background:${c};border:2px solid #2a2a4a;transition:0.3s;touch-action:manipulation;">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="font-size:18px;color:#ffd93d;">🏆 <span id="colorScore">${score}</span></div>
+                        <div id="colorMsg" style="font-size:14px;min-height:20px;color:#888;"></div>
+                        <button onclick="window.resetColorMatch()" 
+                                style="margin-top:8px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                document.querySelectorAll('.color-cell').forEach(el => {
+                    el.addEventListener('click', () => {
+                        if (gameOver) return;
+                        const color = el.dataset.color;
+                        if (color === target) {
+                            score++;
+                            document.getElementById('colorScore').textContent = score;
+                            document.getElementById('colorMsg').textContent = '✅ မှန်ပါတယ်!';
+                            document.getElementById('colorMsg').style.color = '#4CAF50';
+                            // New round
+                            shuffled = [...colors];
+                            targetIndex = Math.floor(Math.random() * shuffled.length);
+                            const newTarget = shuffled[targetIndex];
+                            document.querySelector('#colorGrid').parentElement.querySelector('div:first-child').style.background = newTarget;
+                            const displayNew = [...shuffled].sort(() => Math.random() - 0.5);
+                            document.querySelectorAll('.color-cell').forEach((el2, i) => {
+                                el2.style.background = displayNew[i];
+                                el2.dataset.color = displayNew[i];
+                            });
+                            // Update target variable
+                            window._colorTarget = newTarget;
+                        } else {
+                            document.getElementById('colorMsg').textContent = '❌ မှားသွားတယ်!';
+                            document.getElementById('colorMsg').style.color = '#ff6b6b';
+                            gameOver = true;
+                            setTimeout(() => {
+                                document.getElementById('colorMsg').textContent = '🔄 ပြန်စရန် နှိပ်ပါ';
+                                document.getElementById('colorMsg').style.color = '#888';
+                            }, 1000);
+                        }
+                    });
+                });
+
+                window._colorTarget = target;
+                window.resetColorMatch = () => {
+                    score = 0;
+                    gameOver = false;
+                    document.getElementById('colorScore').textContent = '0';
+                    document.getElementById('colorMsg').textContent = '🔄 ဂိမ်းအသစ်စတင်ပြီ';
+                    document.getElementById('colorMsg').style.color = '#888';
+                    render();
+                };
+            }
+
+            render();
+            return { cleanup: () => { delete window.resetColorMatch; delete window._colorTarget; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 7: Snake Game =====
+    // =============================================
+    function snakeGame() {
+        return function(container) {
+            let snake = [{x: 8, y: 8}];
+            let direction = {x: 1, y: 0};
+            let nextDirection = {x: 1, y: 0};
+            let food = {x: 12, y: 8};
+            let score = 0;
+            let gameOver = false;
+            let gameLoop = null;
+            const GRID_SIZE = 18;
+            const CELL_SIZE = 20;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="font-size:14px;color:#aaa;margin-bottom:8px;">🏆 <span id="snakeScore">0</span></div>
+                        <canvas id="snakeCanvas" width="${GRID_SIZE * CELL_SIZE}" height="${GRID_SIZE * CELL_SIZE}" 
+                                style="border-radius:12px;background:#0f3460;border:2px solid #e94560;width:100%;max-width:360px;height:auto;"></canvas>
+                        <div id="snakeMsg" style="margin-top:8px;font-size:16px;min-height:22px;color:#888;"></div>
+                        <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">
+                            <button onclick="window.snakeMove('up')" style="padding:6px 14px;background:#0f3460;border:1px solid #e94560;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;">⬆</button>
+                            <button onclick="window.snakeMove('left')" style="padding:6px 14px;background:#0f3460;border:1px solid #e94560;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;">⬅</button>
+                            <button onclick="window.snakeMove('down')" style="padding:6px 14px;background:#0f3460;border:1px solid #e94560;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;">⬇</button>
+                            <button onclick="window.snakeMove('right')" style="padding:6px 14px;background:#0f3460;border:1px solid #e94560;border-radius:8px;color:#fff;font-size:18px;cursor:pointer;">➡</button>
+                        </div>
+                        <button onclick="window.resetSnake()" 
+                                style="margin-top:8px;padding:6px 20px;font-size:13px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                const canvas = document.getElementById('snakeCanvas');
+                const ctx = canvas.getContext('2d');
+
+                function draw() {
+                    ctx.fillStyle = '#0f3460';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Draw snake
+                    snake.forEach((seg, i) => {
+                        ctx.fillStyle = i === 0 ? '#4CAF50' : '#2E7D32';
+                        ctx.fillRect(seg.x * CELL_SIZE + 1, seg.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                    });
+
+                    // Draw food
+                    ctx.fillStyle = '#e94560';
+                    ctx.beginPath();
+                    ctx.arc(food.x * CELL_SIZE + CELL_SIZE/2, food.y * CELL_SIZE + CELL_SIZE/2, CELL_SIZE/2 - 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw grid lines
+                    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                    ctx.lineWidth = 0.5;
+                    for (let i = 0; i <= GRID_SIZE; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(i * CELL_SIZE, 0);
+                        ctx.lineTo(i * CELL_SIZE, canvas.height);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(0, i * CELL_SIZE);
+                        ctx.lineTo(canvas.width, i * CELL_SIZE);
+                        ctx.stroke();
+                    }
+                }
+
+                function update() {
+                    if (gameOver) return;
+
+                    direction = {...nextDirection};
+
+                    const head = {
+                        x: snake[0].x + direction.x,
+                        y: snake[0].y + direction.y
+                    };
+
+                    // Wall collision
+                    if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+                        gameOver = true;
+                        document.getElementById('snakeMsg').textContent = '💀 Game Over!';
+                        document.getElementById('snakeMsg').style.color = '#ff6b6b';
+                        if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+                        return;
+                    }
+
+                    // Self collision
+                    if (snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+                        gameOver = true;
+                        document.getElementById('snakeMsg').textContent = '💀 Game Over!';
+                        document.getElementById('snakeMsg').style.color = '#ff6b6b';
+                        if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+                        return;
+                    }
+
+                    snake.unshift(head);
+
+                    // Check food
+                    if (head.x === food.x && head.y === food.y) {
+                        score++;
+                        document.getElementById('snakeScore').textContent = score;
+                        spawnFood();
+                    } else {
+                        snake.pop();
+                    }
+
+                    draw();
+                }
+
+                function spawnFood() {
+                    let pos;
+                    do {
+                        pos = {
+                            x: Math.floor(Math.random() * GRID_SIZE),
+                            y: Math.floor(Math.random() * GRID_SIZE)
+                        };
+                    } while (snake.some(seg => seg.x === pos.x && seg.y === pos.y));
+                    food = pos;
+                }
+
+                window.snakeMove = (dir) => {
+                    const dirs = {
+                        'up': {x: 0, y: -1},
+                        'down': {x: 0, y: 1},
+                        'left': {x: -1, y: 0},
+                        'right': {x: 1, y: 0}
+                    };
+                    const newDir = dirs[dir];
+                    if (newDir && (newDir.x !== -direction.x || newDir.y !== -direction.y)) {
+                        nextDirection = newDir;
+                    }
+                };
+
+                window.resetSnake = () => {
+                    if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+                    snake = [{x: 8, y: 8}];
+                    direction = {x: 1, y: 0};
+                    nextDirection = {x: 1, y: 0};
+                    score = 0;
+                    gameOver = false;
+                    document.getElementById('snakeScore').textContent = '0';
+                    document.getElementById('snakeMsg').textContent = '';
+                    spawnFood();
+                    draw();
+                    gameLoop = setInterval(update, 120);
+                };
+
+                // Keyboard support
+                document.addEventListener('keydown', window._snakeKeyHandler = (e) => {
+                    const keyMap = {
+                        'ArrowUp': 'up', 'ArrowDown': 'down',
+                        'ArrowLeft': 'left', 'ArrowRight': 'right'
+                    };
+                    if (keyMap[e.key]) {
+                        e.preventDefault();
+                        window.snakeMove(keyMap[e.key]);
+                    }
+                });
+
+                spawnFood();
+                draw();
+                gameLoop = setInterval(update, 120);
+            }
+
+            render();
+            return {
+                cleanup: () => {
+                    if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+                    if (window._snakeKeyHandler) {
+                        document.removeEventListener('keydown', window._snakeKeyHandler);
+                        delete window._snakeKeyHandler;
+                    }
+                    delete window.snakeMove;
+                    delete window.resetSnake;
+                }
+            };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 8: Flappy Bird =====
+    // =============================================
+    function flappyGame() {
+        return function(container) {
+            let bird = {x: 50, y: 150, vy: 0, size: 15};
+            let pipes = [];
+            let score = 0;
+            let gameOver = false;
+            let gameLoop = null;
+            const GRAVITY = 0.4;
+            const JUMP = -6;
+            const PIPE_WIDTH = 30;
+            const PIPE_GAP = 120;
+            const CANVAS_WIDTH = 300;
+            const CANVAS_HEIGHT = 400;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="font-size:16px;color:#fff;">🏆 <span id="flappyScore">0</span></div>
+                        <canvas id="flappyCanvas" width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" 
+                                style="border-radius:12px;background:#87CEEB;border:2px solid #e94560;width:100%;max-width:350px;height:auto;cursor:pointer;"></canvas>
+                        <div id="flappyMsg" style="margin-top:8px;font-size:16px;min-height:22px;color:#888;"></div>
+                        <button onclick="window.resetFlappy()" 
+                                style="margin-top:8px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                const canvas = document.getElementById('flappyCanvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.addEventListener('click', () => {
+                    if (gameOver) return;
+                    bird.vy = JUMP;
+                });
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (gameOver) return;
+                    bird.vy = JUMP;
+                }, { passive: false });
+
+                document.addEventListener('keydown', window._flappyKeyHandler = (e) => {
+                    if (e.key === ' ' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (gameOver) return;
+                        bird.vy = JUMP;
+                    }
+                });
+
+                function resetGame() {
+                    bird = {x: 50, y: 150, vy: 0, size: 15};
+                    pipes = [];
+                    score = 0;
+                    gameOver = false;
+                    document.getElementById('flappyScore').textContent = '0';
+                    document.getElementById('flappyMsg').textContent = '';
+                }
+
+                window.resetFlappy = () => {
+                    if (gameLoop) { cancelAnimationFrame(gameLoop); gameLoop = null; }
+                    resetGame();
+                    loop();
+                };
+
+                function draw() {
+                    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                    // Sky
+                    const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+                    grad.addColorStop(0, '#4A90D9');
+                    grad.addColorStop(0.7, '#87CEEB');
+                    grad.addColorStop(1, '#B5D8A8');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                    // Ground
+                    ctx.fillStyle = '#7CB342';
+                    ctx.fillRect(0, CANVAS_HEIGHT - 30, CANVAS_WIDTH, 30);
+                    ctx.fillStyle = '#689F38';
+                    ctx.fillRect(0, CANVAS_HEIGHT - 30, CANVAS_WIDTH, 3);
+
+                    // Pipes
+                    pipes.forEach(p => {
+                        ctx.fillStyle = '#2E7D32';
+                        ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
+                        ctx.fillRect(p.x, p.top + PIPE_GAP, PIPE_WIDTH, CANVAS_HEIGHT - p.top - PIPE_GAP);
+                        ctx.fillStyle = '#388E3C';
+                        ctx.fillRect(p.x - 3, p.top - 15, PIPE_WIDTH + 6, 15);
+                        ctx.fillRect(p.x - 3, p.top + PIPE_GAP, PIPE_WIDTH + 6, 15);
+                    });
+
+                    // Bird
+                    ctx.fillStyle = '#FFD93D';
+                    ctx.beginPath();
+                    ctx.arc(bird.x, bird.y, bird.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FF6B6B';
+                    ctx.beginPath();
+                    ctx.arc(bird.x + 6, bird.y - 4, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.beginPath();
+                    ctx.arc(bird.x + 8, bird.y - 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Score
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.fillRect(10, 10, 50, 30);
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 18px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(score, 35, 27);
+
+                    if (gameOver) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 30px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('💀', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 - 10);
+                        ctx.font = '16px Arial';
+                        ctx.fillText('Game Over', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 40);
+                    }
+                }
+
+                function update() {
+                    if (gameOver) return;
+
+                    bird.vy += GRAVITY;
+                    bird.y += bird.vy;
+
+                    // Bird boundaries
+                    if (bird.y - bird.size < 0 || bird.y + bird.size > CANVAS_HEIGHT - 30) {
+                        gameOver = true;
+                        document.getElementById('flappyMsg').textContent = '💀 Game Over!';
+                        document.getElementById('flappyMsg').style.color = '#ff6b6b';
+                        return;
+                    }
+
+                    // Spawn pipes
+                    if (pipes.length === 0 || pipes[pipes.length - 1].x < CANVAS_WIDTH - 150) {
+                        const top = 30 + Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 60);
+                        pipes.push({x: CANVAS_WIDTH, top: top});
+                    }
+
+                    // Update pipes
+                    for (let i = pipes.length - 1; i >= 0; i--) {
+                        pipes[i].x -= 2;
+                        if (pipes[i].x + PIPE_WIDTH < 0) {
+                            pipes.splice(i, 1);
+                            continue;
+                        }
+
+                        // Score
+                        if (!pipes[i].scored && pipes[i].x + PIPE_WIDTH < bird.x) {
+                            pipes[i].scored = true;
+                            score++;
+                            document.getElementById('flappyScore').textContent = score;
+                        }
+
+                        // Collision
+                        const p = pipes[i];
+                        if (bird.x + bird.size > p.x && bird.x - bird.size < p.x + PIPE_WIDTH) {
+                            if (bird.y - bird.size < p.top || bird.y + bird.size > p.top + PIPE_GAP) {
+                                gameOver = true;
+                                document.getElementById('flappyMsg').textContent = '💀 Game Over!';
+                                document.getElementById('flappyMsg').style.color = '#ff6b6b';
+                                return;
+                            }
+                        }
+                    }
+
+                    draw();
+                }
+
+                function loop() {
+                    if (!gameOver) update();
+                    else draw();
+                    gameLoop = requestAnimationFrame(loop);
+                }
+
+                loop();
+            }
+
+            render();
+            return {
+                cleanup: () => {
+                    if (gameLoop) { cancelAnimationFrame(gameLoop); gameLoop = null; }
+                    if (window._flappyKeyHandler) {
+                        document.removeEventListener('keydown', window._flappyKeyHandler);
+                        delete window._flappyKeyHandler;
+                    }
+                    delete window.resetFlappy;
+                }
+            };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 9: Dice Roll =====
+    // =============================================
+    function diceGame() {
+        return function(container) {
+            let playerScore = 0;
+            let computerScore = 0;
+            let gameOver = false;
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="display:flex;justify-content:center;gap:30px;margin:10px 0;">
+                            <div>
+                                <div style="font-size:14px;color:#aaa;">သင်</div>
+                                <div style="font-size:36px;font-weight:bold;color:#4CAF50;" id="playerDice">🎲</div>
+                                <div style="font-size:20px;color:#fff;" id="playerScore">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size:14px;color:#aaa;">ကွန်ပျူတာ</div>
+                                <div style="font-size:36px;font-weight:bold;color:#e94560;" id="computerDice">🎲</div>
+                                <div style="font-size:20px;color:#fff;" id="computerScore">0</div>
+                            </div>
+                        </div>
+                        <div id="diceMsg" style="font-size:18px;min-height:28px;color:#ffd93d;"></div>
+                        <button onclick="window.rollDice()" 
+                                style="padding:12px 30px;font-size:18px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;">
+                            🎲 လှိမ့်မယ်
+                        </button>
+                        <button onclick="window.resetDice()" 
+                                style="margin-left:10px;padding:12px 24px;font-size:16px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                window.rollDice = () => {
+                    if (gameOver) return;
+                    const playerRoll = Math.floor(Math.random() * 6) + 1;
+                    const computerRoll = Math.floor(Math.random() * 6) + 1;
+
+                    const diceEmojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+                    document.getElementById('playerDice').textContent = diceEmojis[playerRoll - 1];
+                    document.getElementById('computerDice').textContent = diceEmojis[computerRoll - 1];
+
+                    if (playerRoll > computerRoll) {
+                        playerScore++;
+                        document.getElementById('diceMsg').textContent = `🎉 သင် အနိုင်ရပြီ! (${playerRoll} vs ${computerRoll})`;
+                        document.getElementById('diceMsg').style.color = '#4CAF50';
+                    } else if (computerRoll > playerRoll) {
+                        computerScore++;
+                        document.getElementById('diceMsg').textContent = `😅 ကွန်ပျူတာ အနိုင်ရတယ် (${playerRoll} vs ${computerRoll})`;
+                        document.getElementById('diceMsg').style.color = '#ff6b6b';
+                    } else {
+                        document.getElementById('diceMsg').textContent = `🤝 သရေကျတယ်! (${playerRoll} vs ${computerRoll})`;
+                        document.getElementById('diceMsg').style.color = '#ffd93d';
+                    }
+
+                    document.getElementById('playerScore').textContent = playerScore;
+                    document.getElementById('computerScore').textContent = computerScore;
+
+                    if (playerScore >= 5) {
+                        gameOver = true;
+                        document.getElementById('diceMsg').textContent = '🏆 သင်က ချန်ပီယံ!';
+                        document.getElementById('diceMsg').style.color = '#ffd93d';
+                    } else if (computerScore >= 5) {
+                        gameOver = true;
+                        document.getElementById('diceMsg').textContent = '💻 ကွန်ပျူတာက ချန်ပီယံ!';
+                        document.getElementById('diceMsg').style.color = '#ff6b6b';
+                    }
+                };
+
+                window.resetDice = () => {
+                    playerScore = 0;
+                    computerScore = 0;
+                    gameOver = false;
+                    document.getElementById('playerDice').textContent = '🎲';
+                    document.getElementById('computerDice').textContent = '🎲';
+                    document.getElementById('playerScore').textContent = '0';
+                    document.getElementById('computerScore').textContent = '0';
+                    document.getElementById('diceMsg').textContent = '🔄 ဂိမ်းအသစ်စတင်ပြီ';
+                    document.getElementById('diceMsg').style.color = '#ffd93d';
+                };
+            }
+
+            render();
+            return { cleanup: () => { delete window.rollDice; delete window.resetDice; } };
+        };
+    }
+
+    // =============================================
+    // ===== GAME 10: Rock Paper Scissors =====
+    // =============================================
+    function rockPaperGame() {
+        return function(container) {
+            let playerScore = 0;
+            let computerScore = 0;
+            const choices = ['🪨', '📄', '✂️'];
+            const names = ['Rock', 'Paper', 'Scissors'];
+
+            function render() {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:5px 0;">
+                        <div style="display:flex;justify-content:center;gap:30px;margin:10px 0;">
+                            <div>
+                                <div style="font-size:14px;color:#aaa;">သင်</div>
+                                <div style="font-size:42px;" id="rpsPlayer">❓</div>
+                                <div style="font-size:18px;color:#4CAF50;" id="rpsPlayerScore">0</div>
+                            </div>
+                            <div>
+                                <div style="font-size:14px;color:#aaa;">ကွန်ပျူတာ</div>
+                                <div style="font-size:42px;" id="rpsComputer">❓</div>
+                                <div style="font-size:18px;color:#e94560;" id="rpsComputerScore">0</div>
+                            </div>
+                        </div>
+                        <div id="rpsMsg" style="font-size:18px;min-height:28px;color:#ffd93d;"></div>
+                        <div style="display:flex;justify-content:center;gap:12px;margin-top:10px;">
+                            ${choices.map((c, i) => `
+                                <button onclick="window.rpsPlay(${i})" 
+                                        style="padding:12px 20px;font-size:28px;background:#0f3460;border:2px solid #e94560;border-radius:12px;cursor:pointer;transition:0.3s;touch-action:manipulation;">
+                                    ${c}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <button onclick="window.resetRPS()" 
+                                style="margin-top:12px;padding:8px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                `;
+
+                window.rpsPlay = (playerIndex) => {
+                    const computerIndex = Math.floor(Math.random() * 3);
+                    document.getElementById('rpsPlayer').textContent = choices[playerIndex];
+                    document.getElementById('rpsComputer').textContent = choices[computerIndex];
+
+                    if (playerIndex === computerIndex) {
+                        document.getElementById('rpsMsg').textContent = `🤝 သရေကျတယ်! (${names[playerIndex]} vs ${names[computerIndex]})`;
+                        document.getElementById('rpsMsg').style.color = '#ffd93d';
+                    } else if (
+                        (playerIndex === 0 && computerIndex === 2) ||
+                        (playerIndex === 1 && computerIndex === 0) ||
+                        (playerIndex === 2 && computerIndex === 1)
+                    ) {
+                        playerScore++;
+                        document.getElementById('rpsMsg').textContent = `🎉 သင် အနိုင်ရပြီ! (${names[playerIndex]} vs ${names[computerIndex]})`;
+                        document.getElementById('rpsMsg').style.color = '#4CAF50';
+                    } else {
+                        computerScore++;
+                        document.getElementById('rpsMsg').textContent = `😅 ကွန်ပျူတာ အနိုင်ရတယ် (${names[playerIndex]} vs ${names[computerIndex]})`;
+                        document.getElementById('rpsMsg').style.color = '#ff6b6b';
+                    }
+
+                    document.getElementById('rpsPlayerScore').textContent = playerScore;
+                    document.getElementById('rpsComputerScore').textContent = computerScore;
+                };
+
+                window.resetRPS = () => {
+                    playerScore = 0;
+                    computerScore = 0;
+                    document.getElementById('rpsPlayer').textContent = '❓';
+                    document.getElementById('rpsComputer').textContent = '❓';
+                    document.getElementById('rpsPlayerScore').textContent = '0';
+                    document.getElementById('rpsComputerScore').textContent = '0';
+                    document.getElementById('rpsMsg').textContent = '🔄 ဂိမ်းအသစ်စတင်ပြီ';
+                    document.getElementById('rpsMsg').style.color = '#ffd93d';
+                };
+            }
+
+            render();
+            return { cleanup: () => { delete window.rpsPlay; delete window.resetRPS; } };
+        };
+    }
+
+    // =============================================
+    // ===== SERVICE WORKER FOR OFFLINE =====
+    // =============================================
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(() => console.log('✅ Service Worker registered'))
+            .catch(() => console.log('❌ Service Worker registration failed'));
+    }
+
+    console.log('🎮 Game Collection loaded!');
+    console.log(`📱 ${GAMES.length} games available offline`);
+</script>
+
+</body>
+</html>
