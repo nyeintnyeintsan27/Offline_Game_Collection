@@ -452,6 +452,28 @@
             return rockPaperGame();
           },
         },
+        {
+          id: "cooking-pizza",
+          icon: "🍕",
+          name: "Cooking Pizza",
+          desc: "ပီဇာချက်ပါ",
+          color: "#E17055",
+          highScore: HighScoreManager.get("cooking-pizza"),
+          play: function () {
+            return pizzaChefGame();
+          },
+        },
+        {
+          id: "whack-mole",
+          icon: "🔨",
+          name: "Whack Mole",
+          desc: "ခေါင်းရိုက်ပါ",
+          color: "#e94560",
+          highScore: HighScoreManager.get("whack-mole"),
+          play: function () {
+            return whackMoleGame();
+          },
+        },
       ];
 
       // =============================================
@@ -1374,7 +1396,7 @@
         };
       }
 
-      // GAME 7: Snake Game 
+      // GAME 7: Snake Game
       function snakeGame() {
         return function (container, gameId) {
           let snake = [{ x: 8, y: 8 }];
@@ -1612,7 +1634,7 @@
         };
       }
 
-      // GAME 8: Flappy Bird 
+      // GAME 8: Flappy Bird
       function flappyGame() {
         return function (container, gameId) {
           let bird = { x: 50, y: 150, vy: 0, size: 15 };
@@ -2198,6 +2220,1067 @@
           return {
             cleanup: () => {
               delete window.resetRPS;
+            },
+          };
+        };
+      }
+
+      // GAME 13: Pizza Chef 
+      function pizzaChefGame() {
+        return function (container, gameId) {
+          let score = 0;
+          let level = 1;
+          let timeLeft = 45;
+          let gameRunning = false;
+          let bestScore = HighScoreManager.get(gameId);
+          let currentRecipe = null;
+          let selected = [];
+          let orderCount = 0;
+          let correctCount = 0;
+          let wrongCount = 0;
+
+          let timerInterval = null;
+
+          // ===== ပါဝင်ပစ္စည်းများ =====
+          const INGREDIENTS = [
+            { id: "cheese", name: "🧀 Cheese", color: "#FFD93D" },
+            { id: "pepperoni", name: "🍖 Pepperoni", color: "#E17055" },
+            { id: "mushroom", name: "🍄 Mushroom", color: "#A29BFE" },
+            { id: "onion", name: "🧅 Onion", color: "#FDCB6E" },
+            { id: "bellpepper", name: "🫑 Bell Pepper", color: "#55EFC4" },
+            { id: "olive", name: "🫒 Olive", color: "#2d3436" },
+            { id: "pineapple", name: "🍍 Pineapple", color: "#FFD93D" },
+            { id: "bacon", name: "🥓 Bacon", color: "#e94560" },
+          ];
+
+          // ===== အဆင့်အလိုက် ပီဇာချက်နည်းများ =====
+          function getRecipesForLevel(level) {
+            const baseRecipes = [
+              {
+                name: "Margherita",
+                ingredients: ["cheese", "onion"],
+                emoji: "🧀",
+                difficulty: 1,
+              },
+              {
+                name: "Pepperoni",
+                ingredients: ["cheese", "pepperoni"],
+                emoji: "🍖",
+                difficulty: 1,
+              },
+              {
+                name: "Mushroom",
+                ingredients: ["cheese", "mushroom", "onion"],
+                emoji: "🍄",
+                difficulty: 1,
+              },
+              {
+                name: "Hawaiian",
+                ingredients: ["cheese", "pineapple", "bacon"],
+                emoji: "🍍",
+                difficulty: 2,
+              },
+              {
+                name: "Supreme",
+                ingredients: [
+                  "cheese",
+                  "pepperoni",
+                  "mushroom",
+                  "onion",
+                  "bellpepper",
+                ],
+                emoji: "⭐",
+                difficulty: 2,
+              },
+              {
+                name: "Veggie",
+                ingredients: [
+                  "cheese",
+                  "mushroom",
+                  "onion",
+                  "bellpepper",
+                  "olive",
+                ],
+                emoji: "🥗",
+                difficulty: 2,
+              },
+              {
+                name: "BBQ",
+                ingredients: ["cheese", "bacon", "onion", "bellpepper"],
+                emoji: "🔥",
+                difficulty: 2,
+              },
+              {
+                name: "Cheese ×3",
+                ingredients: ["cheese", "cheese", "cheese"],
+                emoji: "🧀🧀🧀",
+                difficulty: 3,
+              },
+            ];
+
+            if (level <= 2) {
+              return baseRecipes.filter((r) => r.difficulty === 1);
+            } else if (level <= 4) {
+              return baseRecipes.filter((r) => r.difficulty <= 2);
+            } else {
+              return baseRecipes;
+            }
+          }
+
+          function generateOrder() {
+            const available = getRecipesForLevel(level);
+            const recipe =
+              available[Math.floor(Math.random() * available.length)];
+            currentRecipe = recipe;
+            selected = [];
+            return recipe;
+          }
+
+          function render() {
+            if (timerInterval) {
+              clearInterval(timerInterval);
+              timerInterval = null;
+            }
+
+            currentRecipe = generateOrder();
+            bestScore = HighScoreManager.get(gameId);
+
+            container.innerHTML = `
+                <div style="text-align:center;padding:5px 0;">
+                    <div class="high-score-display">🏆 အကောင်းဆုံး: ${bestScore > 0 ? bestScore : "မရှိသေးဘူး"}</div>
+                    <div style="display:flex;justify-content:center;gap:20px;font-size:14px;color:#aaa;margin:8px 0;">
+                        <span>🏆 <span id="pizzaScore">0</span></span>
+                        <span>📊 Level <span id="pizzaLevel">${level}</span></span>
+                        <span>⏱️ <span id="pizzaTimer">45</span>s</span>
+                    </div>
+                    
+                    <div style="background:#1a1a2e;border-radius:12px;padding:12px;border:2px solid #e94560;margin-bottom:10px;">
+                        <div style="font-size:14px;color:#aaa;">📋 အော်ဒါ</div>
+                        <div id="orderDisplay" style="font-size:20px;color:#ffd93d;font-weight:bold;">
+                            ${currentRecipe.emoji} ${currentRecipe.name}
+                        </div>
+                        <div id="orderIngredients" style="font-size:12px;color:#888;margin-top:4px;">
+                            လိုအပ်တဲ့ပစ္စည်းများ: ${currentRecipe.ingredients
+                              .map((id) => {
+                                const ing = INGREDIENTS.find(
+                                  (i) => i.id === id,
+                                );
+                                return ing ? ing.name : id;
+                              })
+                              .join(", ")}
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                        ${INGREDIENTS.map(
+                          (ing) => `
+                            <button class="ingredient-btn" data-id="${ing.id}" 
+                                    style="padding:6px 10px;font-size:12px;background:#0f3460;border:2px solid #2a2a4a;border-radius:8px;color:#fff;cursor:pointer;transition:0.2s;touch-action:manipulation;">
+                                ${ing.name}
+                            </button>
+                        `,
+                        ).join("")}
+                    </div>
+                    
+                    <div style="background:#0f3460;border-radius:10px;padding:8px;min-height:40px;border:1px solid #2a2a4a;margin-bottom:8px;">
+                        <div style="font-size:12px;color:#888;">🛒 ရွေးထားတဲ့ပစ္စည်းများ:</div>
+                        <div id="selectedIngredients" style="font-size:14px;color:#ffd93d;min-height:20px;">(ဘာမှမရွေးရသေးဘူး)</div>
+                    </div>
+                    
+                    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+                        <button onclick="window.submitPizza()" 
+                                style="padding:10px 28px;font-size:16px;font-weight:bold;background:#e94560;color:#fff;border:none;border-radius:10px;cursor:pointer;">
+                            📦 Order တင်မည်
+                        </button>
+                        <button onclick="window.resetPizza()" 
+                                style="padding:10px 24px;font-size:14px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                            🔄 ပြန်စမယ်
+                        </button>
+                    </div>
+                    
+                    <div id="pizzaMsg" style="margin-top:8px;font-size:16px;min-height:24px;color:#ffd93d;"></div>
+                    <div id="pizzaStats" style="font-size:12px;color:#888;margin-top:4px;">
+                        ✅ မှန်သည်: <span id="correctCount">0</span> | ❌ မှားသည်: <span id="wrongCount">0</span>
+                    </div>
+                </div>
+            `;
+
+            // ===== Ingredient Buttons =====
+            document.querySelectorAll(".ingredient-btn").forEach((btn) => {
+              btn.addEventListener("click", function () {
+                if (!gameRunning) return;
+                const id = this.dataset.id;
+                toggleIngredient(id);
+              });
+              btn.addEventListener(
+                "touchstart",
+                function (e) {
+                  e.preventDefault();
+                  if (!gameRunning) return;
+                  const id = this.dataset.id;
+                  toggleIngredient(id);
+                },
+                { passive: false },
+              );
+            });
+
+            // ===== Global functions =====
+            window.submitPizza = function () {
+              if (!gameRunning) return;
+
+              // ===== ပစ္စည်းမရွေးပဲ နှိပ်လို့မရအောင် =====
+              if (selected.length === 0) {
+                const msg = document.getElementById("pizzaMsg");
+                msg.textContent = "⚠️ ပစ္စည်းတစ်ခုခုကို ဦးစွာရွေးချယ်ပါ!";
+                msg.style.color = "#ffd93d";
+                return;
+              }
+
+              checkPizza();
+            };
+
+            window.resetPizza = function () {
+              if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+              }
+
+              score = 0;
+              level = 1;
+              timeLeft = 45;
+              gameRunning = true;
+              correctCount = 0;
+              wrongCount = 0;
+              selected = [];
+              currentRecipe = generateOrder();
+
+              document.getElementById("pizzaScore").textContent = "0";
+              document.getElementById("pizzaLevel").textContent = "1";
+              document.getElementById("pizzaTimer").textContent = "45";
+              document.getElementById("correctCount").textContent = "0";
+              document.getElementById("wrongCount").textContent = "0";
+              document.getElementById("pizzaMsg").textContent =
+                "🔄 ဂိမ်းအသစ်စတင်ပြီ";
+              document.getElementById("pizzaMsg").style.color = "#ffd93d";
+              document.getElementById("selectedIngredients").textContent =
+                "(ဘာမှမရွေးရသေးဘူး)";
+              document.getElementById("selectedIngredients").style.color =
+                "#888";
+
+              document.getElementById("orderDisplay").textContent =
+                `${currentRecipe.emoji} ${currentRecipe.name}`;
+              document.getElementById("orderIngredients").textContent =
+                `လိုအပ်တဲ့ပစ္စည်းများ: ${currentRecipe.ingredients
+                  .map((id) => {
+                    const ing = INGREDIENTS.find((i) => i.id === id);
+                    return ing ? ing.name : id;
+                  })
+                  .join(", ")}`;
+
+              document.querySelectorAll(".ingredient-btn").forEach((btn) => {
+                btn.style.borderColor = "#2a2a4a";
+                btn.style.background = "#0f3460";
+                btn.style.pointerEvents = "auto";
+                btn.style.opacity = "1";
+                const id = btn.dataset.id;
+                const ing = INGREDIENTS.find((i) => i.id === id);
+                btn.textContent = ing.name;
+              });
+
+              bestScore = HighScoreManager.get(gameId);
+              document.querySelector(".high-score-display").textContent =
+                `🏆 အကောင်းဆုံး: ${bestScore > 0 ? bestScore : "မရှိသေးဘူး"}`;
+              document.querySelector(".high-score-display").style.borderColor =
+                "rgba(255,217,61,0.2)";
+
+              startGame();
+            };
+
+            startGame();
+          }
+
+          function toggleIngredient(id) {
+            if (!gameRunning) return;
+            const index = selected.indexOf(id);
+            if (index === -1) {
+              selected.push(id);
+            } else {
+              selected.splice(index, 1);
+            }
+            updateSelectedDisplay();
+            updateButtons();
+          }
+
+          function updateSelectedDisplay() {
+            const el = document.getElementById("selectedIngredients");
+            if (!el) return;
+            if (selected.length === 0) {
+              el.textContent = "(ဘာမှမရွေးရသေးဘူး)";
+              el.style.color = "#888";
+              return;
+            }
+            el.innerHTML = selected
+              .map((id) => {
+                const ing = INGREDIENTS.find((i) => i.id === id);
+                return ing ? ing.name : id;
+              })
+              .join(" + ");
+            el.style.color = "#ffd93d";
+          }
+
+          function updateButtons() {
+            document.querySelectorAll(".ingredient-btn").forEach((btn) => {
+              const id = btn.dataset.id;
+              const count = selected.filter((s) => s === id).length;
+              const ing = INGREDIENTS.find((i) => i.id === id);
+              if (count > 0) {
+                btn.style.borderColor = "#4CAF50";
+                btn.style.background = "#1a4a2a";
+                btn.textContent = `${ing.name} ×${count}`;
+              } else {
+                btn.style.borderColor = "#2a2a4a";
+                btn.style.background = "#0f3460";
+                btn.textContent = ing.name;
+              }
+            });
+          }
+
+          function checkPizza() {
+            if (!gameRunning) return;
+
+            const msg = document.getElementById("pizzaMsg");
+            const required = currentRecipe.ingredients;
+
+            const sortedRequired = [...required].sort();
+            const sortedSelected = [...selected].sort();
+
+            const exactMatch =
+              sortedRequired.length === sortedSelected.length &&
+              sortedRequired.every((val, i) => val === sortedSelected[i]);
+
+            if (exactMatch) {
+              correctCount++;
+              const bonus = Math.floor(level / 2) * 2;
+              const points = 10 + bonus;
+              score += points;
+              orderCount++;
+
+              document.getElementById("pizzaScore").textContent = score;
+              document.getElementById("correctCount").textContent =
+                correctCount;
+
+              msg.textContent = `✅ ပီဇာမှန်ပါတယ်! +${points} မှတ်`;
+              msg.style.color = "#4CAF50";
+
+              if (score >= level * 15) {
+                level++;
+                document.getElementById("pizzaLevel").textContent = level;
+                msg.textContent = `🎉 Level ${level} ရောက်ပြီ! ပိုခက်ခဲလာမယ်!`;
+                msg.style.color = "#ffd93d";
+                timeLeft += 5;
+                document.getElementById("pizzaTimer").textContent = timeLeft;
+              }
+
+              const isNew = HighScoreManager.set(gameId, score);
+              if (isNew) {
+                document.querySelector(".high-score-display").textContent =
+                  `🏆 အကောင်းဆုံး: ${score} (NEW!)`;
+                document.querySelector(
+                  ".high-score-display",
+                ).style.borderColor = "#4CAF50";
+                updateHighScoreBadges();
+              } else {
+                const best = HighScoreManager.get(gameId);
+                document.querySelector(".high-score-display").textContent =
+                  `🏆 အကောင်းဆုံး: ${best}`;
+              }
+
+              setTimeout(() => {
+                currentRecipe = generateOrder();
+                selected = [];
+                updateSelectedDisplay();
+                updateButtons();
+
+                document.getElementById("orderDisplay").textContent =
+                  `${currentRecipe.emoji} ${currentRecipe.name}`;
+                document.getElementById("orderIngredients").textContent =
+                  `လိုအပ်တဲ့ပစ္စည်းများ: ${currentRecipe.ingredients
+                    .map((id) => {
+                      const ing = INGREDIENTS.find((i) => i.id === id);
+                      return ing ? ing.name : id;
+                    })
+                    .join(", ")}`;
+
+                msg.textContent = "📋 နောက်အော်ဒါအသစ်!";
+                msg.style.color = "#ffd93d";
+              }, 1000);
+            } else {
+              wrongCount++;
+              document.getElementById("wrongCount").textContent = wrongCount;
+
+              let errorMsg = "";
+              const missing = required.filter((id) => !selected.includes(id));
+              const extra = selected.filter((id) => !required.includes(id));
+
+              if (missing.length > 0) {
+                errorMsg += ` လိုတဲ့ပစ္စည်း: ${missing
+                  .map((id) => {
+                    const ing = INGREDIENTS.find((i) => i.id === id);
+                    return ing ? ing.name : id;
+                  })
+                  .join(", ")}`;
+              }
+              if (extra.length > 0) {
+                errorMsg += ` မလိုတဲ့ပစ္စည်း: ${extra
+                  .map((id) => {
+                    const ing = INGREDIENTS.find((i) => i.id === id);
+                    return ing ? ing.name : id;
+                  })
+                  .join(", ")}`;
+              }
+              if (
+                selected.length !== required.length &&
+                missing.length === 0 &&
+                extra.length === 0
+              ) {
+                errorMsg = ` ပစ္စည်းအရေအတွက် မှားနေတယ် (လိုတာ ${required.length} ခု၊ ရွေးတာ ${selected.length} ခု)`;
+              }
+
+              msg.textContent = `❌ မှားသွားတယ်!${errorMsg}`;
+              msg.style.color = "#ff6b6b";
+
+              setTimeout(() => {
+                currentRecipe = generateOrder();
+                selected = [];
+                updateSelectedDisplay();
+                updateButtons();
+
+                document.getElementById("orderDisplay").textContent =
+                  `${currentRecipe.emoji} ${currentRecipe.name}`;
+                document.getElementById("orderIngredients").textContent =
+                  `လိုအပ်တဲ့ပစ္စည်းများ: ${currentRecipe.ingredients
+                    .map((id) => {
+                      const ing = INGREDIENTS.find((i) => i.id === id);
+                      return ing ? ing.name : id;
+                    })
+                    .join(", ")}`;
+
+                msg.textContent = "📋 အော်ဒါအသစ်! ထပ်ကြိုးစားပါ";
+                msg.style.color = "#ffd93d";
+              }, 1500);
+            }
+          }
+
+          function startGame() {
+            gameRunning = true;
+            timeLeft = 45;
+
+            const timerEl = document.getElementById("pizzaTimer");
+            if (timerEl) timerEl.textContent = "45";
+
+            if (timerInterval) {
+              clearInterval(timerInterval);
+              timerInterval = null;
+            }
+
+            timerInterval = setInterval(() => {
+              timeLeft--;
+              const timerEl2 = document.getElementById("pizzaTimer");
+              if (timerEl2) timerEl2.textContent = timeLeft;
+
+              if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                gameRunning = false;
+
+                const msg = document.getElementById("pizzaMsg");
+                if (msg) {
+                  msg.textContent = `⏰ အချိန်ကုန်ပြီ! ရမှတ်: ${score}`;
+                  msg.style.color = "#ff6b6b";
+                }
+
+                const isNew = HighScoreManager.set(gameId, score);
+                const hsDisplay = document.querySelector(".high-score-display");
+                if (hsDisplay) {
+                  if (isNew) {
+                    hsDisplay.textContent = `🏆 အကောင်းဆုံး: ${score} (NEW!)`;
+                    hsDisplay.style.borderColor = "#4CAF50";
+                    updateHighScoreBadges();
+                  } else {
+                    const best = HighScoreManager.get(gameId);
+                    hsDisplay.textContent = `🏆 အကောင်းဆုံး: ${best}`;
+                  }
+                }
+
+                document.querySelectorAll(".ingredient-btn").forEach((btn) => {
+                  btn.style.pointerEvents = "none";
+                  btn.style.opacity = "0.5";
+                });
+              }
+            }, 1000);
+          }
+
+          render();
+
+          return {
+            cleanup: () => {
+              if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+              }
+              delete window.submitPizza;
+              delete window.resetPizza;
+            },
+          };
+        };
+      }
+
+      // GAME 14: Whack-a-Mole 
+      function whackMoleGame() {
+        return function (container, gameId) {
+          let score = 0;
+          let level = 1;
+          let timeLeft = 30;
+          let gameRunning = false;
+          let bestScore = HighScoreManager.get(gameId);
+          let activeHole = -1;
+          let hitCount = 0;
+          let missCount = 0;
+          let combo = 0;
+          let maxCombo = 0;
+
+          let gameLoop = null;
+          let timerInterval = null;
+          let canvas = null;
+          let ctx = null;
+
+          const HOLES = [
+            { x: 15, y: 80 },
+            { x: 95, y: 80 },
+            { x: 175, y: 80 },
+            { x: 15, y: 180 },
+            { x: 95, y: 180 },
+            { x: 175, y: 180 },
+          ];
+
+          const HOLE_WIDTH = 70;
+          const HOLE_HEIGHT = 45;
+
+          // ===== ကျင်းများဆွဲခြင်း =====
+          function drawHoles() {
+            HOLES.forEach((hole) => {
+              ctx.fillStyle = "#0f0f1a";
+              ctx.shadowColor = "rgba(0,0,0,0.3)";
+              ctx.shadowBlur = 10;
+              ctx.beginPath();
+              ctx.ellipse(
+                hole.x + HOLE_WIDTH / 2,
+                hole.y + HOLE_HEIGHT / 2,
+                HOLE_WIDTH / 2,
+                HOLE_HEIGHT / 2.5,
+                0,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fill();
+              ctx.shadowBlur = 0;
+
+              ctx.fillStyle = "#5D4037";
+              ctx.beginPath();
+              ctx.ellipse(
+                hole.x + HOLE_WIDTH / 2,
+                hole.y + HOLE_HEIGHT / 2 + 2,
+                HOLE_WIDTH / 2 + 4,
+                HOLE_HEIGHT / 2.5 + 3,
+                0,
+                0,
+                Math.PI,
+              );
+              ctx.fill();
+
+              ctx.fillStyle = "rgba(0,0,0,0.2)";
+              ctx.beginPath();
+              ctx.ellipse(
+                hole.x + HOLE_WIDTH / 2,
+                hole.y + HOLE_HEIGHT / 2 + 3,
+                HOLE_WIDTH / 2 - 5,
+                HOLE_HEIGHT / 2.5 - 3,
+                0,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fill();
+            });
+          }
+
+          // ===== ခေါင်းဆွဲခြင်း =====
+          function drawHead(x, y) {
+            const cx = x + HOLE_WIDTH / 2;
+            const cy = y + HOLE_HEIGHT / 2 - 15;
+
+            ctx.fillStyle = "rgba(0,0,0,0.15)";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 22, 28, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#F5D6A8";
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 32, 26, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = "#0f0f1a";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 22, 30, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#D4A373";
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.ellipse(cx - 26, cy - 4, 8, 16, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 26, cy - 4, 8, 16, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.ellipse(cx - 10, cy - 2, 10, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 10, cy - 2, 10, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#1a1a2e";
+            ctx.beginPath();
+            ctx.arc(cx - 8, cy - 1, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 12, cy - 1, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(cx - 9, cy - 3, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 11, cy - 3, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#5D4037";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 16, cy - 12);
+            ctx.lineTo(cx - 6, cy - 14);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 6, cy - 14);
+            ctx.lineTo(cx + 16, cy - 12);
+            ctx.stroke();
+
+            ctx.fillStyle = "#8B6B4A";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 8, 10, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#2a1a0e";
+            ctx.beginPath();
+            ctx.arc(cx - 3.5, cy + 8, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 3.5, cy + 8, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#5D4037";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 15, 7, 0.1, 0.6);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(255,150,150,0.25)";
+            ctx.beginPath();
+            ctx.arc(cx - 19, cy + 8, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 19, cy + 8, 8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // ===== ကာပီဘာရာ =====
+          function drawCapybaraWithHammer() {
+            const cx = 150;
+            const cy = 265;
+
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowBlur = 10;
+
+            ctx.fillStyle = "#C68E4E";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 10, 35, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#B87D3A";
+            ctx.fillRect(cx - 20, cy + 28, 10, 12);
+            ctx.fillRect(cx + 10, cy + 28, 10, 12);
+            ctx.fillRect(cx - 30, cy + 26, 10, 14);
+            ctx.fillRect(cx + 20, cy + 26, 10, 14);
+
+            ctx.fillStyle = "#D7A05B";
+            ctx.beginPath();
+            ctx.ellipse(cx + 22, cy - 2, 20, 17, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#C68E4E";
+            ctx.beginPath();
+            ctx.ellipse(cx + 12, cy - 18, 6, 10, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + 28, cy - 18, 6, 10, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(cx + 26, cy - 6, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 34, cy - 6, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#1a1a2e";
+            ctx.beginPath();
+            ctx.arc(cx + 27, cy - 7, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + 35, cy - 7, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#6B4F3A";
+            ctx.beginPath();
+            ctx.ellipse(cx + 38, cy + 1, 7, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#5D4037";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx + 36, cy + 7, 5, 0.1, 0.5);
+            ctx.stroke();
+
+            ctx.shadowBlur = 6;
+            ctx.strokeStyle = "#8B6B4A";
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(cx + 6, cy + 14);
+            ctx.lineTo(cx + 32, cy - 28);
+            ctx.stroke();
+
+            ctx.fillStyle = "#777";
+            ctx.shadowBlur = 8;
+            ctx.fillRect(cx + 26, cy - 38, 20, 12);
+            ctx.fillStyle = "#999";
+            ctx.fillRect(cx + 29, cy - 35, 14, 6);
+            ctx.fillStyle = "#555";
+            ctx.fillRect(cx + 28, cy - 36, 2, 8);
+            ctx.fillRect(cx + 42, cy - 36, 2, 8);
+
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = "#FF6B6B";
+            for (let i = 0; i < 5; i++) {
+              const angle = (i * Math.PI * 2) / 5 + 0.2;
+              ctx.beginPath();
+              ctx.ellipse(
+                cx - 2 + Math.cos(angle) * 10,
+                cy - 10 + Math.sin(angle) * 6,
+                4,
+                3,
+                angle,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fill();
+            }
+            ctx.fillStyle = "#FFD93D";
+            ctx.beginPath();
+            ctx.arc(cx - 2, cy - 10, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          function draw() {
+            if (!ctx) return;
+
+            ctx.clearRect(0, 0, 300, 300);
+
+            const grad = ctx.createLinearGradient(0, 0, 0, 300);
+            grad.addColorStop(0, "#4CAF50");
+            grad.addColorStop(0.2, "#388E3C");
+            grad.addColorStop(1, "#2E7D32");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 300, 300);
+
+            for (let i = 0; i < 15; i++) {
+              ctx.fillStyle = i % 2 === 0 ? "#43A047" : "#388E3C";
+              const gx = (i * 22 + Date.now() * 0.01) % 300;
+              ctx.beginPath();
+              ctx.moveTo(gx, 300);
+              ctx.lineTo(gx + 4, 280 + Math.sin(i) * 4);
+              ctx.lineTo(gx + 8, 300);
+              ctx.closePath();
+              ctx.fill();
+            }
+
+            drawHoles();
+
+            // ခေါင်းထွက်နေရင် ဆွဲ
+            if (gameRunning && activeHole >= 0 && activeHole < HOLES.length) {
+              drawHead(HOLES[activeHole].x, HOLES[activeHole].y);
+            }
+
+            drawCapybaraWithHammer();
+          }
+
+          // ခေါင်းထွက်စေခြင်း
+          function showHead() {
+            if (!gameRunning || timeLeft <= 0) return;
+
+            // ခေါင်းထွက်နေပြီဆိုရင် ပြန်မထွက်စေဘူး
+            if (activeHole !== -1) return;
+
+            // ကျပန်းကျင်းတစ်ခုကို ရွေးချယ်ပြီး ခေါင်းထွက်စေခြင်း
+            const randomHole = Math.floor(Math.random() * HOLES.length);
+            activeHole = randomHole;
+            draw();
+
+            // ခေါင်းပြန်ဝင်ချိန် သတ်မှတ်ခြင်း (Level အလိုက် ပြောင်းလဲ)
+            const hideDelay = Math.max(300, 800 - (level - 1) * 40);
+            setTimeout(() => {
+              if (gameRunning) {
+                activeHole = -1;
+                draw();
+              }
+            }, hideDelay);
+          }
+
+          // ဂိမ်းစတင်ခြင်း
+          function startGame() {
+            score = 0;
+            level = 1;
+            timeLeft = 30;
+            gameRunning = true;
+            hitCount = 0;
+            missCount = 0;
+            combo = 0;
+            maxCombo = 0;
+            activeHole = -1;
+
+            document.getElementById("moleScore").textContent = "0";
+            document.getElementById("moleLevel").textContent = "1";
+            document.getElementById("moleTimer").textContent = "30";
+            document.getElementById("moleMsg").textContent =
+              "🎮 စတင်ပါပြီ! ခေါင်းကို ရိုက်ပါ!";
+            document.getElementById("moleMsg").style.color = "#ffd93d";
+            document.getElementById("moleCombo").textContent = "0";
+            document.getElementById("moleMaxCombo").textContent = "0";
+
+            draw();
+
+            // Timer
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+              timeLeft--;
+              document.getElementById("moleTimer").textContent = timeLeft;
+              if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                endGame();
+              }
+            }, 1000);
+
+            // Game Loop - ခေါင်းထွက်စေခြင်း
+            if (gameLoop) clearInterval(gameLoop);
+
+            // ပထမဆုံးခေါင်းကို ၁ စက္ကန့်အကြာမှ ထွက်စေခြင်း
+            setTimeout(() => {
+              if (gameRunning) showHead();
+            }, 1000);
+
+            gameLoop = setInterval(() => {
+              if (!gameRunning || timeLeft <= 0) return;
+
+              // Level up
+              if (score >= level * 15) {
+                level++;
+                document.getElementById("moleLevel").textContent = level;
+                document.getElementById("moleMsg").textContent =
+                  `📊 Level ${level} ရောက်ပြီ! ပိုမြန်လာပြီ!`;
+                document.getElementById("moleMsg").style.color = "#4CAF50";
+              }
+
+              // ခေါင်းထွက်ချိန်ရောက်ရင် 
+              if (activeHole === -1) {
+                const delay = Math.max(300, 1200 - (level - 1) * 80);
+                setTimeout(
+                  () => {
+                    if (gameRunning && activeHole === -1) {
+                      showHead();
+                    }
+                  },
+                  delay + Math.random() * 300,
+                );
+              }
+            }, 200);
+          }
+
+          function endGame() {
+            gameRunning = false;
+            activeHole = -1;
+            if (timerInterval) clearInterval(timerInterval);
+            if (gameLoop) clearInterval(gameLoop);
+
+            document.getElementById("moleMsg").textContent =
+              `⏰ အချိန်ကုန်ပြီ! ရမှတ်: ${score}`;
+            document.getElementById("moleMsg").style.color = "#ff6b6b";
+
+            const isNew = HighScoreManager.set(gameId, score);
+            if (isNew) {
+              document.querySelector(".high-score-display").textContent =
+                `🏆 အကောင်းဆုံး: ${score} (NEW!)`;
+              document.querySelector(".high-score-display").style.borderColor =
+                "#4CAF50";
+              updateHighScoreBadges();
+            } else {
+              const best = HighScoreManager.get(gameId);
+              document.querySelector(".high-score-display").textContent =
+                `🏆 အကောင်းဆုံး: ${best}`;
+            }
+
+            draw();
+          }
+
+          function handleClick(e) {
+            if (!gameRunning || timeLeft <= 0 || !canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX, clientY;
+            if (e.touches) {
+              clientX = e.touches[0].clientX;
+              clientY = e.touches[0].clientY;
+              e.preventDefault();
+            } else {
+              clientX = e.clientX;
+              clientY = e.clientY;
+            }
+
+            const clickX = (clientX - rect.left) * scaleX;
+            const clickY = (clientY - rect.top) * scaleY;
+
+            let hitHole = -1;
+            HOLES.forEach((hole, index) => {
+              const hx = hole.x + HOLE_WIDTH / 2;
+              const hy = hole.y + HOLE_HEIGHT / 2;
+              const dx = clickX - hx;
+              const dy = clickY - hy;
+              if (Math.sqrt(dx * dx + dy * dy) < HOLE_WIDTH / 2 + 5) {
+                hitHole = index;
+              }
+            });
+
+            if (hitHole >= 0) {
+              const msgEl = document.getElementById("moleMsg");
+              if (hitHole === activeHole) {
+                const bonus = Math.floor(level / 2) * 2;
+                const points = 10 + bonus;
+                score += points;
+                hitCount++;
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+
+                document.getElementById("moleScore").textContent = score;
+                document.getElementById("moleCombo").textContent = combo;
+                document.getElementById("moleMaxCombo").textContent = maxCombo;
+
+                if (msgEl) {
+                  msgEl.textContent = `💥 ရိုက်မှန်ပြီ! +${points} (Combo x${combo})`;
+                  msgEl.style.color = "#4CAF50";
+                }
+
+                activeHole = -1;
+                draw();
+              } else {
+                missCount++;
+                combo = 0;
+                document.getElementById("moleCombo").textContent = "0";
+                if (msgEl) {
+                  msgEl.textContent = "😅 လွဲသွားတယ်!";
+                  msgEl.style.color = "#ff6b6b";
+                }
+              }
+            }
+          }
+
+          function render() {
+            container.innerHTML = `
+                <div style="text-align:center;padding:5px 0;">
+                    <div class="high-score-display">🏆 အကောင်းဆုံး: ${bestScore > 0 ? bestScore : "မရှိသေးဘူး"}</div>
+                    <div style="display:flex;justify-content:center;gap:15px;font-size:13px;color:#aaa;margin:6px 0;flex-wrap:wrap;">
+                        <span>🏆 <span id="moleScore">0</span></span>
+                        <span>📊 Level <span id="moleLevel">1</span></span>
+                        <span>⏱️ <span id="moleTimer">30</span>s</span>
+                        <span>🔥 Combo <span id="moleCombo">0</span></span>
+                        <span>⭐ Max <span id="moleMaxCombo">0</span></span>
+                    </div>
+                    <canvas id="moleCanvas" width="300" height="300" 
+                            style="border-radius:12px;background:#2E7D32;border:2px solid #e94560;width:100%;max-width:350px;height:auto;cursor:crosshair;touch-action:none;"></canvas>
+                    <div id="moleMsg" style="margin-top:6px;font-size:14px;min-height:20px;color:#888;"></div>
+                    <button onclick="window.resetMole()" 
+                            style="margin-top:6px;padding:6px 20px;font-size:13px;font-weight:bold;background:#0f3460;color:#fff;border:1px solid #e94560;border-radius:10px;cursor:pointer;">
+                        🔄 ပြန်စမယ်
+                    </button>
+                </div>
+            `;
+
+            canvas = document.getElementById("moleCanvas");
+            ctx = canvas.getContext("2d");
+
+            canvas.addEventListener("click", handleClick);
+            canvas.addEventListener("touchstart", handleClick, {
+              passive: false,
+            });
+
+            window.resetMole = () => {
+              if (timerInterval) clearInterval(timerInterval);
+              if (gameLoop) clearInterval(gameLoop);
+
+              bestScore = HighScoreManager.get(gameId);
+              document.querySelector(".high-score-display").textContent =
+                `🏆 အကောင်းဆုံး: ${bestScore > 0 ? bestScore : "မရှိသေးဘူး"}`;
+              document.querySelector(".high-score-display").style.borderColor =
+                "rgba(255,217,61,0.2)";
+
+              startGame();
+            };
+
+            startGame();
+          }
+
+          render();
+
+          return {
+            cleanup: () => {
+              if (timerInterval) clearInterval(timerInterval);
+              if (gameLoop) clearInterval(gameLoop);
+              if (canvas) {
+                canvas.removeEventListener("click", handleClick);
+                canvas.removeEventListener("touchstart", handleClick);
+              }
+              delete window.resetMole;
             },
           };
         };
