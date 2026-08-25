@@ -4016,298 +4016,248 @@
 
             // Board Drawing
 
-            function drawBoard(diceValueToShow) {
-              if (!ctx) return;
+            // Board Drawing 
 
-              const W = 1800;
-              const H = 1200;
-              const cols = 8;
-              const rows = 6;
-              const cellSize = 270; // အကွက်အရွယ်အစား
-              const boardStartX = 20;
-              const boardStartY = 15;
-              const padding = 4;
+function drawBoard(diceValueToShow) {
+  if (!ctx) return;
 
-              ctx.clearRect(0, 0, W, H);
-              ctx.fillStyle = "#0f3460";
-              ctx.fillRect(0, 0, W, H);
+  const W = 1800;
+  const H = 1200;
+  const cols = 8;
+  const rows = 6;
+  const cellSize = 270; 
+  const boardStartX = 20;
+  const boardStartY = 15;
+  const padding = 4;
 
-              // Board ဆွဲခြင်း
-              for (let i = 0; i < boardSize; i++) {
-                const row = Math.floor(i / cols);
-                const col = i % cols;
-                const x = boardStartX + col * cellSize + padding;
-                const y = boardStartY + row * cellSize + 40;
-                const size = cellSize - padding * 2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#0f3460";
+  ctx.fillRect(0, 0, W, H);
 
-                const isSpecial = getSpecial(i + 1);
+  for (let i = 0; i < boardSize; i++) {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const x = boardStartX + col * cellSize + padding;
+    const y = boardStartY + row * cellSize + 40;
+    const size = cellSize - padding * 2;
 
-                if (isSpecial) {
-                  ctx.fillStyle = isSpecial.color || "#2a2a4a";
-                } else {
-                  ctx.fillStyle = i % 2 === 0 ? "#1a4a7a" : "#1a5a8a";
-                }
+    const isSpecial = getSpecial(i + 1);
 
-                ctx.fillRect(x, y, size, size);
-                ctx.strokeStyle = "rgba(255,255,255,0.1)";
-                ctx.lineWidth = 0.5;
-                ctx.strokeRect(x, y, size, size);
+    if (isSpecial) {
+      ctx.fillStyle = isSpecial.color || "#2a2a4a";
+    } else {
+      ctx.fillStyle = i % 2 === 0 ? "#1a4a7a" : "#1a5a8a";
+    }
 
-                // ===== ကွက်နံပါတ် =====
-                ctx.fillStyle = "rgba(255,255,255,0.4)";
-                ctx.font = "bold 16px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(i + 1, x + size / 2, y + size / 2 - 10);
+    ctx.fillRect(x, y, size, size);
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(x, y, size, size);
 
-                if (isSpecial) {
-                  ctx.fillStyle = "white";
-                  ctx.font = "bold 22px Arial";
-                  ctx.fillText(
-                    isSpecial.label,
-                    x + size / 2,
-                    y + size / 2 + 14,
-                  );
-                }
-              }
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(i + 1, x + size / 2, y + size / 2 - 10);
 
-              // ===== START Area (ကွက် 0) =====
-              const startX = boardStartX;
-              const startY = boardStartY + rows * cellSize + 15;
-              const startW = cols * cellSize;
-              const startH = 158; // START နေရာ ပိုမြင့်အောင်
+    if (isSpecial) {
+      ctx.fillStyle = "white";
+      ctx.font = "bold 22px Arial";
+      ctx.fillText(isSpecial.label, x + size / 2, y + size / 2 + 14);
+    }
+  }
 
-              ctx.fillStyle = "#2E86C1";
-              ctx.shadowColor = "rgba(0,0,0,0.3)";
-              ctx.shadowBlur = 10;
-              ctx.beginPath();
-              ctx.roundRect(startX, startY, startW, startH, 10);
-              ctx.fill();
-              ctx.shadowBlur = 0;
-              ctx.strokeStyle = "rgba(255,215,0,0.4)";
-              ctx.lineWidth = 2;
-              ctx.setLineDash([5, 5]);
-              ctx.beginPath();
-              ctx.roundRect(startX, startY, startW, startH, 10);
-              ctx.stroke();
-              ctx.setLineDash([]);
+  // ===== START Area (မိုးပြာရောင်) =====
+  const startX = boardStartX;
+  const startY = boardStartY + rows * cellSize + 15;
+  const startW = cols * cellSize;
+  const startH = 158;
 
-              ctx.fillStyle = "#FFD93D";
-              ctx.font = "bold 34px Arial"; // START စာသားကို ပိုကြီးအောင်
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(
-                "🏁 START",
-                startX + startW / 2 - 100,
-                startY + startH / 2,
-              );
+  ctx.fillStyle = "#2E86C1";
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.roundRect(startX, startY, startW, startH, 10);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,215,0,0.4)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.roundRect(startX, startY, startW, startH, 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
 
-              // ===== အန်စာတုံး (START နေရာမှာ) =====
-              const diceSize = 110;
-              const diceX = startX + startW - diceSize - 40;
-              const diceY = startY + (startH - diceSize) / 2;
-              const val = diceValueToShow || diceValue || 1;
+  ctx.fillStyle = "#FFD93D";
+  ctx.font = "bold 34px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🏁 START", startX + startW / 2 - 100, startY + startH / 2);
 
-              ctx.shadowColor = "rgba(0,0,0,0.3)";
-              ctx.shadowBlur = 15;
-              ctx.shadowOffsetX = 3;
-              ctx.shadowOffsetY = 3;
+  const diceSize = 110;
+  const diceX = startX + startW - diceSize - 40;
+  const diceY = startY + (startH - diceSize) / 2;
+  const val = diceValueToShow || diceValue || 1;
 
-              const grad = ctx.createRadialGradient(
-                diceX + diceSize * 0.2,
-                diceY + diceSize * 0.2,
-                diceSize * 0.1,
-                diceX + diceSize * 0.5,
-                diceY + diceSize * 0.5,
-                diceSize * 0.6,
-              );
-              grad.addColorStop(0, "#FFFFFF");
-              grad.addColorStop(0.7, "#F5F5F5");
-              grad.addColorStop(1, "#E0E0E0");
-              ctx.fillStyle = grad;
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 15;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 3;
 
-              const radius = diceSize * 0.12;
-              ctx.beginPath();
-              ctx.moveTo(diceX + radius, diceY);
-              ctx.lineTo(diceX + diceSize - radius, diceY);
-              ctx.quadraticCurveTo(
-                diceX + diceSize,
-                diceY,
-                diceX + diceSize,
-                diceY + radius,
-              );
-              ctx.lineTo(diceX + diceSize, diceY + diceSize - radius);
-              ctx.quadraticCurveTo(
-                diceX + diceSize,
-                diceY + diceSize,
-                diceX + diceSize - radius,
-                diceY + diceSize,
-              );
-              ctx.lineTo(diceX + radius, diceY + diceSize);
-              ctx.quadraticCurveTo(
-                diceX,
-                diceY + diceSize,
-                diceX,
-                diceY + diceSize - radius,
-              );
-              ctx.lineTo(diceX, diceY + radius);
-              ctx.quadraticCurveTo(diceX, diceY, diceX + radius, diceY);
-              ctx.closePath();
-              ctx.fill();
-              ctx.shadowBlur = 0;
-              ctx.strokeStyle = "#CCCCCC";
-              ctx.lineWidth = 1.5;
-              ctx.stroke();
+  const grad = ctx.createRadialGradient(
+    diceX + diceSize * 0.2,
+    diceY + diceSize * 0.2,
+    diceSize * 0.1,
+    diceX + diceSize * 0.5,
+    diceY + diceSize * 0.5,
+    diceSize * 0.6,
+  );
+  grad.addColorStop(0, "#FFFFFF");
+  grad.addColorStop(0.7, "#F5F5F5");
+  grad.addColorStop(1, "#E0E0E0");
+  ctx.fillStyle = grad;
 
-              const dotPositions = {
-                1: [[0.5, 0.5]],
-                2: [
-                  [0.25, 0.25],
-                  [0.75, 0.75],
-                ],
-                3: [
-                  [0.25, 0.25],
-                  [0.5, 0.5],
-                  [0.75, 0.75],
-                ],
-                4: [
-                  [0.25, 0.25],
-                  [0.75, 0.25],
-                  [0.25, 0.75],
-                  [0.75, 0.75],
-                ],
-                5: [
-                  [0.25, 0.25],
-                  [0.75, 0.25],
-                  [0.5, 0.5],
-                  [0.25, 0.75],
-                  [0.75, 0.75],
-                ],
-                6: [
-                  [0.25, 0.25],
-                  [0.75, 0.25],
-                  [0.25, 0.5],
-                  [0.75, 0.5],
-                  [0.25, 0.75],
-                  [0.75, 0.75],
-                ],
-              };
+  const radius = diceSize * 0.12;
+  ctx.beginPath();
+  ctx.moveTo(diceX + radius, diceY);
+  ctx.lineTo(diceX + diceSize - radius, diceY);
+  ctx.quadraticCurveTo(diceX + diceSize, diceY, diceX + diceSize, diceY + radius);
+  ctx.lineTo(diceX + diceSize, diceY + diceSize - radius);
+  ctx.quadraticCurveTo(diceX + diceSize, diceY + diceSize, diceX + diceSize - radius, diceY + diceSize);
+  ctx.lineTo(diceX + radius, diceY + diceSize);
+  ctx.quadraticCurveTo(diceX, diceY + diceSize, diceX, diceY + diceSize - radius);
+  ctx.lineTo(diceX, diceY + radius);
+  ctx.quadraticCurveTo(diceX, diceY, diceX + radius, diceY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#CCCCCC";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
-              ctx.shadowBlur = 3;
-              ctx.shadowColor = "rgba(0,0,0,0.15)";
-              ctx.shadowOffsetX = 1;
-              ctx.shadowOffsetY = 1;
-              ctx.fillStyle = "#1a1a2e";
+  const dotPositions = {
+    1: [[0.5, 0.5]],
+    2: [[0.25, 0.25], [0.75, 0.75]],
+    3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]],
+    4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
+    5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]],
+    6: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.5], [0.75, 0.5], [0.25, 0.75], [0.75, 0.75]],
+  };
 
-              const dots = dotPositions[val] || dotPositions[1];
-              const dotSize2 = diceSize * 0.13;
-              dots.forEach((pos) => {
-                const dx = diceX + pos[0] * diceSize;
-                const dy = diceY + pos[1] * diceSize;
-                ctx.beginPath();
-                ctx.arc(dx, dy, dotSize2, 0, Math.PI * 2);
-                ctx.fill();
-              });
+  ctx.shadowBlur = 3;
+  ctx.shadowColor = "rgba(0,0,0,0.15)";
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1;
+  ctx.fillStyle = "#1a1a2e";
 
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
+  const dots = dotPositions[val] || dotPositions[1];
+  const dotSize2 = diceSize * 0.13;
+  dots.forEach((pos) => {
+    const dx = diceX + pos[0] * diceSize;
+    const dy = diceY + pos[1] * diceSize;
+    ctx.beginPath();
+    ctx.arc(dx, dy, dotSize2, 0, Math.PI * 2);
+    ctx.fill();
+  });
 
-              // ===== ကစားသမားများ (START မှာ - Icon ကြီးအောင်) =====
-              if (playerPosition === 0) {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "rgba(76,175,80,0.5)";
-                ctx.beginPath();
-                ctx.arc(startX + 85, startY + startH / 2, 40, 0, Math.PI * 2); // အချင်းဝက် 28 -> 40
-                ctx.fillStyle = "#4CAF50";
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "white";
-                ctx.font = "bold 48px Arial"; // Icon အရွယ် 32 -> 48
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("👤", startX + 85, startY + startH / 2);
-              }
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
-              if (computerPosition === 0) {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "rgba(233,69,96,0.5)";
-                ctx.beginPath();
-                ctx.arc(startX + 160, startY + startH / 2, 40, 0, Math.PI * 2); // အချင်းဝက် 28 -> 40
-                ctx.fillStyle = "#e94560";
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "white";
-                ctx.font = "bold 48px Arial"; // Icon အရွယ် 32 -> 48
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("🤖", startX + 160, startY + startH / 2);
-              }
+  // ===== ကစားသမားများ (START မှာ - Icon အရမ်းကြီး) =====
+  if (playerPosition === 0) {
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(76,175,80,0.5)";
+    ctx.beginPath();
+    ctx.arc(startX + 100, startY + startH / 2, 50, 0, Math.PI * 2); // 40 -> 50
+    ctx.fillStyle = "#4CAF50";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = "bold 60px Arial"; // 48 -> 60
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("👤", startX + 100, startY + startH / 2);
+  }
 
-              // ===== ကစားသမားများ (Board ပေါ်မှာ - Icon ကြီးအောင်) =====
-              if (playerPosition > 0 && playerPosition <= boardSize) {
-                const row = Math.floor((playerPosition - 1) / cols);
-                const col = (playerPosition - 1) % cols;
-                const px = boardStartX + col * cellSize + cellSize / 2;
-                const py = boardStartY + row * cellSize + cellSize / 2;
+  if (computerPosition === 0) {
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(233,69,96,0.5)";
+    ctx.beginPath();
+    ctx.arc(startX + 190, startY + startH / 2, 50, 0, Math.PI * 2); // 40 -> 50
+    ctx.fillStyle = "#e94560";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = "bold 60px Arial"; // 48 -> 60
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🤖", startX + 190, startY + startH / 2);
+  }
 
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "rgba(76,175,80,0.5)";
-                ctx.beginPath();
-                ctx.arc(px - 10, py - 10, 34, 0, Math.PI * 2); // အချင်းဝက် 24 -> 34
-                ctx.fillStyle = "#4CAF50";
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "white";
-                ctx.font = "bold 40px Arial"; // Icon အရွယ် 26 -> 40
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("👤", px - 10, py - 10);
-              }
+  // ===== ကစားသမားများ (Board ပေါ်မှာ - Icon အရမ်းကြီး) =====
+  if (playerPosition > 0 && playerPosition <= boardSize) {
+    const row = Math.floor((playerPosition - 1) / cols);
+    const col = (playerPosition - 1) % cols;
+    const px = boardStartX + col * cellSize + cellSize / 2;
+    const py = boardStartY + row * cellSize + cellSize / 2;
 
-              if (computerPosition > 0 && computerPosition <= boardSize) {
-                const row = Math.floor((computerPosition - 1) / cols);
-                const col = (computerPosition - 1) % cols;
-                const px = boardStartX + col * cellSize + cellSize / 2;
-                const py = boardStartY + row * cellSize + cellSize / 2;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(76,175,80,0.5)";
+    ctx.beginPath();
+    ctx.arc(px - 12, py - 12, 42, 0, Math.PI * 2); // 34 -> 42
+    ctx.fillStyle = "#4CAF50";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = "bold 50px Arial"; // 40 -> 50
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("👤", px - 12, py - 12);
+  }
 
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "rgba(233,69,96,0.5)";
-                ctx.beginPath();
-                ctx.arc(px + 10, py + 10, 34, 0, Math.PI * 2); // အချင်းဝက် 24 -> 34
-                ctx.fillStyle = "#e94560";
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "white";
-                ctx.font = "bold 40px Arial"; // Icon အရွယ် 26 -> 40
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("🤖", px + 10, py + 10);
-              }
+  if (computerPosition > 0 && computerPosition <= boardSize) {
+    const row = Math.floor((computerPosition - 1) / cols);
+    const col = (computerPosition - 1) % cols;
+    const px = boardStartX + col * cellSize + cellSize / 2;
+    const py = boardStartY + row * cellSize + cellSize / 2;
 
-              // ===== ပန်းတိုင် =====
-              const goalRow = Math.floor((boardSize - 1) / cols);
-              const goalCol = (boardSize - 1) % cols;
-              const gx = boardStartX + goalCol * cellSize + cellSize / 2;
-              const gy = boardStartY + goalRow * cellSize + cellSize / 2;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(233,69,96,0.5)";
+    ctx.beginPath();
+    ctx.arc(px + 12, py + 12, 42, 0, Math.PI * 2); // 34 -> 42
+    ctx.fillStyle = "#e94560";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "white";
+    ctx.font = "bold 50px Arial"; // 40 -> 50
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🤖", px + 12, py + 12);
+  }
 
-              ctx.shadowBlur = 20;
-              ctx.shadowColor = "rgba(255,215,0,0.3)";
-              ctx.strokeStyle = "#FFD93D";
-              ctx.lineWidth = 3;
-              ctx.setLineDash([5, 5]);
-              ctx.beginPath();
-              ctx.arc(gx, gy, 28, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.setLineDash([]);
-              ctx.shadowBlur = 0;
+  const goalRow = Math.floor((boardSize - 1) / cols);
+  const goalCol = (boardSize - 1) % cols;
+  const gx = boardStartX + goalCol * cellSize + cellSize / 2;
+  const gy = boardStartY + goalRow * cellSize + cellSize / 2;
 
-              ctx.fillStyle = "#FFD93D";
-              ctx.font = "32px Arial";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText("🏆", gx, gy);
-            }
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = "rgba(255,215,0,0.3)";
+  ctx.strokeStyle = "#FFD93D";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.arc(gx, gy, 28, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#FFD93D";
+  ctx.font = "32px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🏆", gx, gy);
+}
           }
 
           // roundRect polyfill
