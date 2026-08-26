@@ -13,7 +13,10 @@
     <meta name="theme-color" content="#0f0f1a" />
     <!-- Apple iOS Support -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <link rel="apple-touch-icon" href="/icon1.png" />
 
     <style>
@@ -331,7 +334,9 @@
           navigator.serviceWorker
             .register("/sw.js")
             .then(() => console.log("✅ Service Worker registered"))
-            .catch((err) => console.error("❌ Service Worker registration failed:", err));
+            .catch((err) =>
+              console.error("❌ Service Worker registration failed:", err),
+            );
         });
       }
 
@@ -541,7 +546,8 @@
       function openGame(index) {
         const game = GAMES[index];
         currentGameId = game.id;
-        document.getElementById("modalTitle").textContent = `${game.icon} ${game.name}`;
+        document.getElementById("modalTitle").textContent =
+          `${game.icon} ${game.name}`;
         document.getElementById("modalBody").innerHTML =
           '<div style="text-align:center;padding:40px;color:#888;">Loading...</div>';
         document.getElementById("gameModal").classList.add("active");
